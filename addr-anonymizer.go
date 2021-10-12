@@ -32,7 +32,6 @@ const (
 var certSha256 string
 var hmacKey []byte
 var cryptoPAn *cryptopan.Cryptopan
-var attExe string
 var counter = ratecounter.NewRateCounter(1 * time.Second)
 var flusher *Flusher
 
@@ -184,16 +183,12 @@ func main() {
 	flag.BoolVar(&useAcme, "acme", false, "Use ACME to obtain certificates.")
 	flag.BoolVar(&debug, "debug", false, "Enable debug mode.")
 	flag.BoolVar(&useCryptoPAn, "cryptopan", false, "Use Crypto-PAn anonymization instead of a HMAC.")
-	flag.StringVar(&attExe, "attestation", "", "Path to the attestation executable.")
 	flag.StringVar(&fqdn, "fqdn", "", "FQDN for TLS certificate.")
 	flag.StringVar(&backend, "backend", "", "Backend URL to submit anonymized IP addresses to.")
 	flag.IntVar(&srvPort, "port", 8080, "Port that the server is listening on.")
 	flag.IntVar(&flushInterval, "flush", 300, "Time interval after which we flush addresses to the backend.")
 	flag.Parse()
 
-	if attExe == "" {
-		log.Fatalf("Provide a path to the attestation executable via -attestation.")
-	}
 	if fqdn == "" {
 		log.Fatal("Provide the host's FQDN by using -fqdn.")
 	}
