@@ -105,7 +105,6 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 		h.Write([]byte(addr))
 		anonAddr = h.Sum(nil)
 	}
-	log.Println("Anonymized address: ", anonAddr)
 	flusher.Submit(anonAddr)
 }
 
@@ -177,23 +176,24 @@ func main() {
 
 	var useAcme, debug, useCryptoPAn bool
 	var err error
-	var fqdn, backend string
+	var fqdn, broker, topic string
 	var srvPort, flushInterval int
 
 	flag.BoolVar(&useAcme, "acme", false, "Use ACME to obtain certificates.")
 	flag.BoolVar(&debug, "debug", false, "Enable debug mode.")
 	flag.BoolVar(&useCryptoPAn, "cryptopan", false, "Use Crypto-PAn anonymization instead of a HMAC.")
 	flag.StringVar(&fqdn, "fqdn", "", "FQDN for TLS certificate.")
-	flag.StringVar(&backend, "backend", "", "Backend URL to submit anonymized IP addresses to.")
+	flag.StringVar(&broker, "broker", "", "Kafka broker URL to submit anonymized IP addresses to.")
+	flag.StringVar(&topic, "topic", "antifraud_verdict_events.production.repsys.upstream", "Kafka topic to submit anonymized IP addresses to.")
 	flag.IntVar(&srvPort, "port", 8080, "Port that the server is listening on.")
-	flag.IntVar(&flushInterval, "flush", 300, "Time interval after which we flush addresses to the backend.")
+	flag.IntVar(&flushInterval, "flush", 300, "Time interval after which we flush addresses to the broker.")
 	flag.Parse()
 
 	if fqdn == "" {
 		log.Fatal("Provide the host's FQDN by using -fqdn.")
 	}
-	if backend == "" {
-		log.Fatal("Provide a backend URL with -backend.")
+	if broker == "" {
+		log.Fatal("Provide a Kafka broker URL with -broker.")
 	}
 	if debug {
 		log.Println("Enabling debug mode.")
@@ -236,12 +236,12 @@ func main() {
 		}
 	}
 
-	log.Printf("Initializing new flusher with interval %ds and backend %s.", flushInterval, backend)
-	backendURL, err := url.Parse(backend)
+	log.Printf("Initializing new flusher with interval %ds and broker %s.", flushInterval, broker)
+	brokerURL, err := url.Parse(broker)
 	if err != nil {
 		log.Fatal(err)
 	}
-	flusher = NewFlusher(flushInterval, *backendURL)
+	flusher = NewFlusher(flushInterval, *brokerURL, topic)
 	flusher.Start()
 	defer flusher.Stop()
 

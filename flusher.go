@@ -1,13 +1,15 @@
 package main
 
 import (
-	"bytes"
+	"context"
+	"crypto/tls"
 	"encoding/json"
 	"log"
-	"net/http"
 	"net/url"
 	"sync"
 	"time"
+
+	"github.com/segmentio/kafka-go"
 )
 
 // Addresses represents a slice of anonymized IP addresses.
@@ -15,21 +17,34 @@ type Addresses struct {
 	Addrs [][]byte `json:"addrs"`
 }
 
-// Flusher periodically flushes anonymized IP addresses to the given backend.
+// Flusher periodically flushes anonymized IP addresses to the given broker.
 type Flusher struct {
 	sync.Mutex
 	done          chan bool
 	wg            sync.WaitGroup
 	flushInterval time.Duration
 	addrs         Addresses
-	backend       url.URL
+	broker        url.URL
+	writer        *kafka.Writer
 }
 
 // NewFlusher creates and returns a new Flusher.
-func NewFlusher(flushInterval int, backend url.URL) *Flusher {
+func NewFlusher(flushInterval int, broker url.URL, topic string) *Flusher {
+	dialer := &kafka.Dialer{
+		Timeout:   10 * time.Second,
+		DualStack: true,
+		TLS:       &tls.Config{},
+	}
+
 	return &Flusher{
 		flushInterval: time.Duration(flushInterval) * time.Second,
-		backend:       backend,
+		broker:        broker,
+		writer: kafka.NewWriter(kafka.WriterConfig{
+			Brokers:  []string{broker.String()},
+			Topic:    topic,
+			Balancer: &kafka.Hash{},
+			Dialer:   dialer,
+		}),
 	}
 }
 
@@ -64,29 +79,26 @@ func (f *Flusher) sendBatch() {
 		return
 	}
 
-	req, err := http.NewRequest(http.MethodPost, f.backend.String(), bytes.NewBuffer(jsonStr))
+	err = f.writer.WriteMessages(context.Background(),
+		kafka.Message{
+			Key:   nil,
+			Value: []byte(jsonStr),
+		},
+	)
 	if err != nil {
-		log.Printf("Failed to create request: %s", err)
+		log.Printf("Failed to write Kafka message: %s", err)
 		return
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("Failed to send request: %s", err)
-		return
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("Got HTTP status code %d from backend.", resp.StatusCode)
-	}
-
-	log.Printf("Flushed %d addresses to backend.", f.addrs.Addrs)
+	log.Printf("Flushed %d addresses to Kafka broker.", len(f.addrs.Addrs))
 	f.addrs.Addrs = nil
 }
 
 // Stop stops the flusher.
 func (f *Flusher) Stop() {
+	if err := f.writer.Close(); err != nil {
+		log.Printf("Failed to close connection to Kafka broker: %s", err)
+	}
 	f.done <- true
 	f.wg.Wait()
 }
