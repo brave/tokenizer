@@ -39,11 +39,14 @@ type anonymizerHandler struct {
 	handle func(w http.ResponseWriter, r *http.Request)
 }
 
+// ServeHTTP increments our rate counter.
 func (f anonymizerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	counter.Incr(1)
 	f.handle(w, r)
 }
 
+// isValidRequest returns true if the given request is POST and its form data
+// could be successfully parsed.
 func isValidRequest(w http.ResponseWriter, r *http.Request) bool {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusBadRequest)
@@ -58,6 +61,10 @@ func isValidRequest(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 
+// attestationHandler takes as input a nonce and asks the hypervisor to create
+// an attestation document that contains the given nonce and our HTTPS
+// certificate's SHA-256 hash.  The resulting Base64-encoded attestation
+// document is returned to the client.
 func attestationHandler(w http.ResponseWriter, r *http.Request) {
 	if !isValidRequest(w, r) {
 		return
@@ -79,6 +86,9 @@ func attestationHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, b64Doc)
 }
 
+// submitHandler takes as input an IP address, anonymizes it, and hands it over
+// to our flusher, which will send the anonymized IP address to our Kafka
+// broker.
 func submitHandler(w http.ResponseWriter, r *http.Request) {
 	if !isValidRequest(w, r) {
 		return
@@ -108,8 +118,12 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 	flusher.Submit(anonAddr)
 }
 
+// setupAcme attempts to retrieve an HTTPS certificate from Let's Encrypt for
+// the given FQDN.  Note that we are unable to cache certificates across
+// enclave restarts, so the enclave requests a new certificate each time it
+// starts.  If the restarts happen often, we may get blocked by Let's Encrypt's
+// rate limiter for a while.
 func setupAcme(fqdn string, server *http.Server) {
-
 	var err error
 
 	log.Printf("ACME hostname set to %s.", fqdn)
@@ -150,6 +164,10 @@ func setupAcme(fqdn string, server *http.Server) {
 	}()
 }
 
+// setCertFingerprint takes as input a PEM-encoded certificate and extracts its
+// SHA-256 fingerprint.  We need the certificate's fingerprint because we embed
+// it in attestation documents, to bind the enclave's certificate to the
+// attestation document.
 func setCertFingerprint(rawData []byte) {
 	rest := []byte{}
 	for rest != nil {
@@ -172,8 +190,38 @@ func setCertFingerprint(rawData []byte) {
 	}
 }
 
-func main() {
+// initAnonymization initializes the key material we need to anonymize IP
+// addresses.
+func initAnonymization(useCryptoPAn bool) {
+	if !useCryptoPAn {
+		log.Println("Using HMAC-SHA256 for IP address anonymization.")
+		hmacKey = make([]byte, hmacKeySize)
+		_, err := rand.Read(hmacKey)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("HMAC key: %x", hmacKey)
+	} else {
+		log.Println("Using Crypto-PAn for IP address anonymization.")
+		// Determine a cryptographically secure random number that serves as
+		// key to our Crypto-PAn object.  The number is determined in the
+		// enclave, and therefore unknown to us.
+		buf := make([]byte, cryptopan.Size)
+		_, err := rand.Read(buf)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// In production mode, we are unable to see the enclave's debug output,
+		// so there's no harm in logging secrets.
+		log.Printf("Crypto-PAn key: %x", buf)
+		cryptoPAn, err = cryptopan.New(buf)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
 
+func main() {
 	var useAcme, debug, useCryptoPAn bool
 	var err error
 	var fqdn, broker, topic string
@@ -211,30 +259,7 @@ func main() {
 	http.Handle("/attest", anonymizerHandler{attestationHandler})
 	http.Handle("/submit", anonymizerHandler{submitHandler})
 
-	if !useCryptoPAn {
-		log.Println("Using HMAC-SHA256 for IP address anonymization.")
-		hmacKey = make([]byte, hmacKeySize)
-		_, err = rand.Read(hmacKey)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Printf("HMAC key: %x", hmacKey)
-	} else {
-		log.Println("Using Crypto-PAn for IP address anonymization.")
-		// Determine a cryptographically secure random number that serves as key to
-		// our Crypto-PAn object.  The number is determined in the enclave, and
-		// therefore unknown to us.
-		buf := make([]byte, cryptopan.Size)
-		_, err = rand.Read(buf)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Printf("Crypto-PAn key: %x", buf)
-		cryptoPAn, err = cryptopan.New(buf)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
+	initAnonymization(useCryptoPAn)
 
 	log.Printf("Initializing new flusher with interval %ds and broker %s.", flushInterval, broker)
 	brokerURL, err := url.Parse(broker)
@@ -248,7 +273,6 @@ func main() {
 	server := http.Server{
 		Addr: fmt.Sprintf(":%d", srvPort),
 	}
-
 	if useAcme {
 		setupAcme(fqdn, &server)
 	} else {
