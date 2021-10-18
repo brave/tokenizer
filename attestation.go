@@ -22,15 +22,14 @@ func attest(nonce, userData, publicKey []byte) ([]byte, error) {
 		}
 	}()
 
-	res, err := s.Send(&request.Attestation{
+	// We ignore the error because of a bug that will return an error despite
+	// having obtained an attestation document:
+	// https://github.com/hf/nsm/issues/2
+	res, _ := s.Send(&request.Attestation{
 		Nonce:     nonce,
 		UserData:  userData,
 		PublicKey: []byte{},
 	})
-	if err != nil {
-		return nil, err
-	}
-
 	if res.Error != "" {
 		return nil, errors.New(string(res.Error))
 	}
