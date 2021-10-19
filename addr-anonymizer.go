@@ -356,6 +356,19 @@ func main() {
 
 	initAnonymization(useCryptoPAn)
 
+	// Start TCP proxy that translates AF_INET to AF_VSOCK, so that HTTP
+	// requests that we make inside of ia2 can reach the SOCKS proxy that's
+	// running on the parent EC2 instance.
+	vproxy, err := NewVProxy()
+	if err != nil {
+		log.Fatal(err)
+	}
+	done := make(chan bool)
+	go vproxy.Start(done)
+	<-done
+	os.Setenv("HTTP_PROXY", "socks5://127.0.0.1:1080")
+	os.Setenv("HTTPS_PROXY", "socks5://127.0.0.1:1080")
+
 	log.Printf("Initializing new flusher with interval %ds and broker %s.", flushInterval, broker)
 	brokerURL, err := url.Parse(broker)
 	if err != nil {
