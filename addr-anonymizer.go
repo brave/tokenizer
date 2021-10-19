@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/Yawning/cryptopan"
+	"github.com/milosgajdos/tenus"
 	"github.com/paulbellamy/ratecounter"
 
 	"golang.org/x/crypto/acme/autocert"
@@ -221,6 +222,30 @@ func initAnonymization(useCryptoPAn bool) {
 	}
 }
 
+// assignLoAddr assigns an IP address to the loopback interface, which is
+// necessary because Nitro enclaves don't do that out-of-the-box.  We need the
+// loopback interface because we run a simple TCP proxy that listens on
+// 127.0.0.1:1080 and converts AF_INET to AF_VSOCK.
+func assignLoAddr() error {
+	addrStr := "127.0.0.1/8"
+	l, err := tenus.NewLinkFrom("lo")
+	if err != nil {
+		return err
+	}
+	addr, network, err := net.ParseCIDR(addrStr)
+	if err != nil {
+		return err
+	}
+	if err = l.SetLinkIp(addr, network); err != nil {
+		return err
+	}
+	if err = l.SetLinkUp(); err != nil {
+		return err
+	}
+	log.Printf("Assigned %s to loopback interface.", addrStr)
+	return nil
+}
+
 func main() {
 	var useAcme, debug, useCryptoPAn bool
 	var err error
@@ -253,6 +278,10 @@ func main() {
 				}
 			}
 		}()
+	}
+
+	if err = assignLoAddr(); err != nil {
+		log.Fatalf("Failed to assign address to lo: %s", err)
 	}
 
 	log.Println("Setting up HTTP handlers.")
