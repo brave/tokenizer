@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
-	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -36,6 +35,17 @@ const (
 	hmacKeySize       = 20
 	entropySeedDevice = "/dev/random"
 	entropySeedSize   = 2048
+
+	// We are unable to configure ia2 at runtime, which is why our
+	// configuration options are constants.
+	useAcme       = false  // Use ACME to obtain certificates.
+	debug         = true   // Enable debug mode, which logs extra information.
+	useCryptoPAn  = true   // Use Crypto-PAn anonymization instead of a HMAC.
+	fqdn          = "TODO" // FQDN for TLS certificate.
+	broker        = "TODO" // Kafka broker URL to send anonymized IP addresses to.
+	topic         = "TODO" // Kafka topic.
+	srvPort       = 8080   // Port that our HTTPS server is listening on.
+	flushInterval = 300    // Time interval after which we flush addresses to the broker.
 )
 
 var certSha256 string
@@ -318,27 +328,8 @@ func assignLoAddr() error {
 }
 
 func main() {
-	var useAcme, debug, useCryptoPAn bool
 	var err error
-	var fqdn, broker, topic string
-	var srvPort, flushInterval int
 
-	flag.BoolVar(&useAcme, "acme", false, "Use ACME to obtain certificates.")
-	flag.BoolVar(&debug, "debug", false, "Enable debug mode.")
-	flag.BoolVar(&useCryptoPAn, "cryptopan", false, "Use Crypto-PAn anonymization instead of a HMAC.")
-	flag.StringVar(&fqdn, "fqdn", "", "FQDN for TLS certificate.")
-	flag.StringVar(&broker, "broker", "", "Kafka broker URL to submit anonymized IP addresses to.")
-	flag.StringVar(&topic, "topic", "antifraud_verdict_events.production.repsys.upstream", "Kafka topic to submit anonymized IP addresses to.")
-	flag.IntVar(&srvPort, "port", 8080, "Port that the server is listening on.")
-	flag.IntVar(&flushInterval, "flush", 300, "Time interval after which we flush addresses to the broker.")
-	flag.Parse()
-
-	if fqdn == "" {
-		log.Fatal("Provide the host's FQDN by using -fqdn.")
-	}
-	if broker == "" {
-		log.Fatal("Provide a Kafka broker URL with -broker.")
-	}
 	if debug {
 		log.Println("Enabling debug mode.")
 		ticker := time.NewTicker(1 * time.Second)
