@@ -23,6 +23,7 @@ import (
 	"github.com/Yawning/cryptopan"
 	"github.com/hf/nsm"
 	"github.com/hf/nsm/request"
+	"github.com/mdlayher/vsock"
 	"github.com/milosgajdos/tenus"
 	"github.com/paulbellamy/ratecounter"
 
@@ -147,8 +148,16 @@ func setupAcme(fqdn string, server *http.Server) {
 		HostPolicy: autocert.HostWhitelist([]string{fqdn}...),
 	}
 	go func() {
+		// Let's Encrypt's HTTP-01 challenge requires a listener on port 80:
+		// https://letsencrypt.org/docs/challenge-types/#http-01-challenge
+		l, err := vsock.Listen(uint32(80))
+		if err != nil {
+			log.Fatalf("Failed to listen for HTTP-01 challenge: %s", err)
+		}
+		defer l.Close()
+
 		log.Printf("Starting autocert listener.")
-		log.Fatal(http.ListenAndServe(":80", certManager.HTTPHandler(nil)))
+		http.Serve(l, certManager.HTTPHandler(nil))
 	}()
 	server.TLSConfig = &tls.Config{GetCertificate: certManager.GetCertificate}
 
@@ -380,9 +389,16 @@ func main() {
 		}
 	}
 
-	// Finally, start the Web server.
+	// Finally, start the Web server, using a vsock-enabled listener.
 	log.Printf("Starting Web server on port %s.", server.Addr)
-	if err = server.ListenAndServeTLS("", ""); err != nil {
-		log.Fatal(err)
+	l, err := vsock.Listen(uint32(srvPort))
+	if err != nil {
+		log.Fatalf("Failed to listen for HTTPS server: %s", err)
+	}
+	defer l.Close()
+
+	if err = server.ServeTLS(l, "", ""); err != nil {
+		// ServeTLS always returns a non-nil err.
+		fmt.Printf("ServeTLS says: %s", err)
 	}
 }
