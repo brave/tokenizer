@@ -360,7 +360,7 @@ func main() {
 	// running on the parent EC2 instance.
 	vproxy, err := NewVProxy()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to initialize vsock proxy: %s", err)
 	}
 	done := make(chan bool)
 	go vproxy.Start(done)
