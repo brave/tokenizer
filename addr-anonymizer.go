@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"time"
 	"unsafe"
 
@@ -35,6 +36,7 @@ const (
 	hmacKeySize       = 20
 	entropySeedDevice = "/dev/random"
 	entropySeedSize   = 2048
+	nonceSize         = 40 // The number of hex digits in a nonce.
 
 	// We are unable to configure ia2 at runtime, which is why our
 	// configuration options are constants.
@@ -53,6 +55,7 @@ var hmacKey []byte
 var cryptoPAn *cryptopan.Cryptopan
 var counter = ratecounter.NewRateCounter(1 * time.Second)
 var flusher *Flusher
+var nonceRegExp = fmt.Sprintf("[a-f0-9]{%d}", nonceSize)
 
 type anonymizerHandler struct {
 	handle func(w http.ResponseWriter, r *http.Request)
@@ -80,6 +83,12 @@ func isValidRequest(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 
+// isNonceValid returns true if the given nonce is correctly formatted.
+func isNonceValid(nonce string) bool {
+	match, _ := regexp.MatchString(nonceRegExp, nonce)
+	return match
+}
+
 // attestationHandler takes as input a nonce and asks the hypervisor to create
 // an attestation document that contains the given nonce and our HTTPS
 // certificate's SHA-256 hash.  The resulting Base64-encoded attestation
@@ -92,6 +101,10 @@ func attestationHandler(w http.ResponseWriter, r *http.Request) {
 	if nonce == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "no nonce given\n")
+		return
+	}
+	if !isNonceValid(nonce) {
+		fmt.Fprintf(w, "bad nonce format\n")
 		return
 	}
 
