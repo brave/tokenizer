@@ -220,11 +220,11 @@ func setCertFingerprint(rawData []byte) {
 // initAnonymization initializes the key material we need to anonymize IP
 // addresses.
 func initAnonymization(useCryptoPAn bool) {
+	var err error
 	if !useCryptoPAn {
 		log.Println("Using HMAC-SHA256 for IP address anonymization.")
 		hmacKey = make([]byte, hmacKeySize)
-		_, err := rand.Read(hmacKey)
-		if err != nil {
+		if _, err = rand.Read(hmacKey); err != nil {
 			log.Fatal(err)
 		}
 		log.Printf("HMAC key: %x", hmacKey)
@@ -234,8 +234,7 @@ func initAnonymization(useCryptoPAn bool) {
 		// key to our Crypto-PAn object.  The number is determined in the
 		// enclave, and therefore unknown to us.
 		buf := make([]byte, cryptopan.Size)
-		_, err := rand.Read(buf)
-		if err != nil {
+		if _, err = rand.Read(buf); err != nil {
 			log.Fatal(err)
 		}
 		// In production mode, we are unable to see the enclave's debug output,
