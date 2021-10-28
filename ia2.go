@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -104,11 +105,19 @@ func attestationHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !isNonceValid(nonce) {
+		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "bad nonce format\n")
 		return
 	}
+	// Decode hex-encoded nonce.
+	rawNonce, err := hex.DecodeString(nonce)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "failed to decode nonce\n")
+		return
+	}
 
-	rawDoc, err := attest([]byte(nonce), []byte(certSha256), nil)
+	rawDoc, err := attest(rawNonce, []byte(certSha256), nil)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "attestation failed: %v\n", err)
