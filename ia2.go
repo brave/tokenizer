@@ -186,10 +186,12 @@ func setupAcme(fqdn string, server *http.Server) {
 		if err != nil {
 			log.Fatalf("Failed to listen for HTTP-01 challenge: %s", err)
 		}
-		defer l.Close()
+		defer func() {
+			_ = l.Close()
+		}()
 
 		log.Printf("Starting autocert listener.")
-		http.Serve(l, certManager.HTTPHandler(nil))
+		_ = http.Serve(l, certManager.HTTPHandler(nil))
 	}()
 	server.TLSConfig = &tls.Config{GetCertificate: certManager.GetCertificate}
 
@@ -278,13 +280,19 @@ func getNSMRandomness() error {
 	if err != nil {
 		return err
 	}
-	defer s.Close()
+	defer func() {
+		_ = s.Close()
+	}()
 
 	fd, err := os.OpenFile(entropySeedDevice, os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		return err
 	}
-	defer fd.Close()
+	defer func() {
+		if err = fd.Close(); err != nil {
+			log.Printf("Failed to close %q: %s", entropySeedDevice, err)
+		}
+	}()
 
 	var written int
 	for totalWritten := 0; totalWritten < entropySeedSize; {
@@ -348,6 +356,15 @@ func assignLoAddr() error {
 	return nil
 }
 
+// setEnvVar sets an environment variable identified by key to value.
+func setEnvVar(key, value string) {
+	if err := os.Setenv(key, value); err != nil {
+		// If we are unable to set our environment variables, ia2 won't be able
+		// to send messages to our Kafka broker, so we might as well fail out.
+		log.Fatalf("Failed to set %q to %q: %s", key, value, err)
+	}
+}
+
 func main() {
 	var err error
 
@@ -387,8 +404,8 @@ func main() {
 	done := make(chan bool)
 	go vproxy.Start(done)
 	<-done
-	os.Setenv("HTTP_PROXY", "socks5://127.0.0.1:1080")
-	os.Setenv("HTTPS_PROXY", "socks5://127.0.0.1:1080")
+	setEnvVar("HTTP_PROXY", "socks5://127.0.0.1:1080")
+	setEnvVar("HTTPS_PROXY", "socks5://127.0.0.1:1080")
 
 	log.Printf("Initializing new flusher with interval %ds and broker %s.", flushInterval, broker)
 	brokerURL, err := url.Parse(broker)
@@ -420,7 +437,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to listen for HTTPS server: %s", err)
 	}
-	defer l.Close()
+	defer func() {
+		_ = l.Close()
+	}()
 
 	if err = server.ServeTLS(l, "", ""); err != nil {
 		// ServeTLS always returns a non-nil err.

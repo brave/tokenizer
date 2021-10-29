@@ -9,18 +9,23 @@ import (
 
 const (
 	parentCID = 3
+	bindAddr  = "127.0.0.1:1080"
 )
 
-type vProxy struct {
+// VProxy implements a TCP proxy that translates from AF_INET (to the left) to
+// AF_VSOCK (to the right).
+type VProxy struct {
 	raddr *vsock.Addr
 	laddr *net.TCPAddr
 }
 
-func (p *vProxy) Start(done chan bool) error {
+// Start starts the proxy.  Once the proxy is up and running, it signals its
+// readiness over the given channel.
+func (p *VProxy) Start(done chan bool) {
 	// Bind to TCP address.
-	ln, err := net.Listen("tcp", "127.0.0.1:1080")
+	ln, err := net.Listen("tcp", bindAddr)
 	if err != nil {
-		return err
+		log.Fatalf("Failed to bind to %s: %s", bindAddr, err)
 	}
 	done <- true // Signal to caller that we're ready to accept connections.
 
@@ -48,7 +53,7 @@ func (p *vProxy) Start(done chan bool) error {
 	}
 }
 
-func (p *vProxy) pipe(src, dst net.Conn) {
+func (p *VProxy) pipe(src, dst net.Conn) {
 	defer func() {
 		if err := src.Close(); err != nil {
 			log.Printf("Failed to close connection: %s", err)
@@ -75,13 +80,13 @@ func (p *vProxy) pipe(src, dst net.Conn) {
 }
 
 // NewVProxy returns a new vProxy instance.
-func NewVProxy() (*vProxy, error) {
+func NewVProxy() (*VProxy, error) {
 	laddr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:1080")
 	if err != nil {
 		return nil, err
 	}
 
-	return &vProxy{
+	return &VProxy{
 		raddr: &vsock.Addr{ContextID: parentCID, Port: 1080},
 		laddr: laddr,
 	}, nil
