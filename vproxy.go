@@ -8,6 +8,8 @@ import (
 )
 
 const (
+	// According to AWS docs, the CID of the parent instance is always 3:
+	// https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave-concepts.html
 	parentCID = 3
 	bindAddr  = "127.0.0.1:1080"
 )
@@ -53,6 +55,7 @@ func (p *VProxy) Start(done chan bool) {
 	}
 }
 
+// pipe forwards packets from src to dst and from dst to src.
 func (p *VProxy) pipe(src, dst net.Conn) {
 	defer func() {
 		if err := src.Close(); err != nil {
