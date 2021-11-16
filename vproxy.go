@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	// According to AWS docs, the CID of the parent instance is always 3:
+	// According to AWS docs, the CID (analogous to an IP address) of the
+	// parent instance is always 3:
 	// https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave-concepts.html
 	parentCID = 3
 	bindAddr  = "127.0.0.1:1080"

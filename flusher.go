@@ -65,6 +65,7 @@ func (f *Flusher) Start() {
 	}()
 }
 
+// sendBatch sends a batch of anonymized IP addresses to our backend.
 func (f *Flusher) sendBatch() {
 	f.Lock()
 	defer f.Unlock()
