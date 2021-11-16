@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"net"
+	"os"
 	"testing"
 
 	"github.com/Yawning/cryptopan"
@@ -38,5 +39,12 @@ func TestIsNonceValid(t *testing.T) {
 	}
 	if !isNonceValid("0123456789abcdef0123456789abcdef01234567") {
 		t.Error("hex nonce was mistakenly rejected")
+	}
+}
+
+func TestSetEnvVar(t *testing.T) {
+	setEnvVar("foo", "bar")
+	if os.Getenv("foo") != "bar" {
+		t.Fatal("failed to retrieve previously-set environment variable")
 	}
 }
