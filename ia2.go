@@ -127,6 +127,38 @@ func attestationHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, b64Doc)
 }
 
+// forwardHandler takes as input forwarded requests from Fastly.  Those
+// requests contain an HTTP header x-forwarded-for that carries the client's IP
+// address.
+func forwardHandler(w http.ResponseWriter, r *http.Request) {
+	if !isValidRequest(w, r) {
+		return
+	}
+
+	addr := net.ParseIP(r.Header.Get("x-forwarded-for"))
+	if addr == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "invalid IP address format\n")
+		return
+	}
+	anonymizeAddr(addr)
+}
+
+// anonymizeAddr takes as input an IP address and anonymizes the address via
+// Crypto-PAn or our HMAC-based anonymization, depending on what's configured.
+// Once the address is anonymized, it's forwarded to our flushing component.
+func anonymizeAddr(addr net.IP) {
+	var anonAddr []byte
+	if hmacKey == nil {
+		anonAddr = cryptoPAn.Anonymize(addr)
+	} else {
+		h := hmac.New(sha256.New, hmacKey)
+		h.Write([]byte(addr))
+		anonAddr = h.Sum(nil)
+	}
+	flusher.Submit(anonAddr)
+}
+
 // submitHandler takes as input an IP address, anonymizes it, and hands it over
 // to our flusher, which will send the anonymized IP address to our Kafka
 // broker.
@@ -148,15 +180,7 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var anonAddr []byte
-	if hmacKey == nil {
-		anonAddr = cryptoPAn.Anonymize(addr)
-	} else {
-		h := hmac.New(sha256.New, hmacKey)
-		h.Write([]byte(addr))
-		anonAddr = h.Sum(nil)
-	}
-	flusher.Submit(anonAddr)
+	anonymizeAddr(addr)
 }
 
 // setupAcme attempts to retrieve an HTTPS certificate from Let's Encrypt for
@@ -391,6 +415,7 @@ func main() {
 	log.Println("Setting up HTTP handlers.")
 	http.Handle("/attest", anonymizerHandler{attestationHandler})
 	http.Handle("/submit", anonymizerHandler{submitHandler})
+	http.Handle("/forward", anonymizerHandler{forwardHandler})
 
 	initAnonymization(useCryptoPAn)
 
