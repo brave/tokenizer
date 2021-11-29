@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -392,6 +393,9 @@ func setEnvVar(key, value string) {
 func main() {
 	var err error
 
+	ignoreNitro := flag.Bool("local", false, "Skip Nitro-specific code, to facilitate debugging.")
+	flag.Parse()
+
 	if debug {
 		log.Println("Enabling debug mode.")
 		ticker := time.NewTicker(1 * time.Second)
@@ -404,12 +408,14 @@ func main() {
 		}()
 	}
 
-	if err = getNSMRandomness(); err != nil {
-		log.Fatalf("Failed to initialize the system's entropy pool: %s", err)
-	}
+	if !*ignoreNitro {
+		if err = getNSMRandomness(); err != nil {
+			log.Fatalf("Failed to initialize the system's entropy pool: %s", err)
+		}
 
-	if err = assignLoAddr(); err != nil {
-		log.Fatalf("Failed to assign address to lo: %s", err)
+		if err = assignLoAddr(); err != nil {
+			log.Fatalf("Failed to assign address to lo: %s", err)
+		}
 	}
 
 	log.Println("Setting up HTTP handlers.")
@@ -458,13 +464,21 @@ func main() {
 
 	// Finally, start the Web server, using a vsock-enabled listener.
 	log.Printf("Starting Web server on port %s.", server.Addr)
-	l, err := vsock.Listen(uint32(srvPort))
-	if err != nil {
-		log.Fatalf("Failed to listen for HTTPS server: %s", err)
+	var l net.Listener
+	if !*ignoreNitro {
+		l, err = vsock.Listen(uint32(srvPort))
+		if err != nil {
+			log.Fatalf("Failed to listen for HTTPS server: %s", err)
+		}
+		defer func() {
+			_ = l.Close()
+		}()
+	} else {
+		l, err = net.Listen("tcp", fmt.Sprintf(":%d", srvPort))
+		if err != nil {
+			log.Fatalf("Failed to listen for HTTPS server: %s", err)
+		}
 	}
-	defer func() {
-		_ = l.Close()
-	}()
 
 	if err = server.ServeTLS(l, "", ""); err != nil {
 		// ServeTLS always returns a non-nil err.
