@@ -105,8 +105,8 @@ func (f *Flusher) Stop() {
 }
 
 // Submit submits the given anonymized IP address to the flusher.
-func (f *Flusher) Submit(addr []byte) {
+func (f *Flusher) Submit(req *clientRequest) {
 	f.Lock()
 	defer f.Unlock()
-	f.addrs.Addrs = append(f.addrs.Addrs, addr)
+	f.addrs.Addrs = append(f.addrs.Addrs, req.AnonAddr)
 }

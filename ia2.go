@@ -2,13 +2,10 @@ package main
 
 import (
 	"context"
-	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/base64"
-	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"flag"
@@ -18,16 +15,18 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 	"time"
 	"unsafe"
 
 	"github.com/Yawning/cryptopan"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/hf/nsm"
 	"github.com/hf/nsm/request"
 	"github.com/mdlayher/vsock"
 	"github.com/milosgajdos/tenus"
 	"github.com/paulbellamy/ratecounter"
+	uuid "github.com/satori/go.uuid"
 
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sys/unix"
@@ -59,14 +58,13 @@ var counter = ratecounter.NewRateCounter(1 * time.Second)
 var flusher *Flusher
 var nonceRegExp = fmt.Sprintf("[a-f0-9]{%d}", nonceSize)
 
-type anonymizerHandler struct {
-	handle func(w http.ResponseWriter, r *http.Request)
-}
-
-// ServeHTTP increments our rate counter.
-func (f anonymizerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	counter.Incr(1)
-	f.handle(w, r)
+// clientRequest represents a client's confirmation token request.  It contains
+// the client's IP address, wallet ID, and eventually its anonymized IP
+// address.
+type clientRequest struct {
+	Addr     net.IP
+	AnonAddr []byte
+	Wallet   uuid.UUID
 }
 
 // isValidRequest returns true if the given request is POST and its form data
@@ -83,105 +81,6 @@ func isValidRequest(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 	return true
-}
-
-// isNonceValid returns true if the given nonce is correctly formatted.
-func isNonceValid(nonce string) bool {
-	match, _ := regexp.MatchString(nonceRegExp, nonce)
-	return match
-}
-
-// attestationHandler takes as input a nonce and asks the hypervisor to create
-// an attestation document that contains the given nonce and our HTTPS
-// certificate's SHA-256 hash.  The resulting Base64-encoded attestation
-// document is returned to the client.
-func attestationHandler(w http.ResponseWriter, r *http.Request) {
-	if !isValidRequest(w, r) {
-		return
-	}
-	nonce := r.FormValue("nonce")
-	if nonce == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "no nonce given\n")
-		return
-	}
-	if !isNonceValid(nonce) {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "bad nonce format\n")
-		return
-	}
-	// Decode hex-encoded nonce.
-	rawNonce, err := hex.DecodeString(nonce)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "failed to decode nonce\n")
-		return
-	}
-
-	rawDoc, err := attest(rawNonce, []byte(certSha256), nil)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "attestation failed: %v\n", err)
-		return
-	}
-	b64Doc := base64.StdEncoding.EncodeToString(rawDoc)
-	fmt.Fprintln(w, b64Doc)
-}
-
-// forwardHandler takes as input forwarded requests from Fastly.  Those
-// requests contain an HTTP header x-forwarded-for that carries the client's IP
-// address.
-func forwardHandler(w http.ResponseWriter, r *http.Request) {
-	if !isValidRequest(w, r) {
-		return
-	}
-
-	addr := net.ParseIP(r.Header.Get("x-forwarded-for"))
-	if addr == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "invalid IP address format\n")
-		return
-	}
-	anonymizeAddr(addr)
-}
-
-// anonymizeAddr takes as input an IP address and anonymizes the address via
-// Crypto-PAn or our HMAC-based anonymization, depending on what's configured.
-// Once the address is anonymized, it's forwarded to our flushing component.
-func anonymizeAddr(addr net.IP) {
-	var anonAddr []byte
-	if hmacKey == nil {
-		anonAddr = cryptoPAn.Anonymize(addr)
-	} else {
-		h := hmac.New(sha256.New, hmacKey)
-		h.Write([]byte(addr))
-		anonAddr = h.Sum(nil)
-	}
-	flusher.Submit(anonAddr)
-}
-
-// submitHandler takes as input an IP address, anonymizes it, and hands it over
-// to our flusher, which will send the anonymized IP address to our Kafka
-// broker.
-func submitHandler(w http.ResponseWriter, r *http.Request) {
-	if !isValidRequest(w, r) {
-		return
-	}
-	addrStr := r.FormValue("addr")
-	if addrStr == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "no IP address given\n")
-		return
-	}
-
-	addr := net.ParseIP(addrStr)
-	if addr == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "invalid IP address format\n")
-		return
-	}
-
-	anonymizeAddr(addr)
 }
 
 // setupAcme attempts to retrieve an HTTPS certificate from Let's Encrypt for
@@ -419,9 +318,12 @@ func main() {
 	}
 
 	log.Println("Setting up HTTP handlers.")
-	http.Handle("/attest", anonymizerHandler{attestationHandler})
-	http.Handle("/submit", anonymizerHandler{submitHandler})
-	http.Handle("/forward", anonymizerHandler{forwardHandler})
+	router := chi.NewRouter()
+	router.Use(middleware.Logger)
+	router.Get("/attest", attestationHandler)
+	router.Get("/submit", submitHandler)
+	// The following endpoint must be identical to what our ads server exposes.
+	router.Get("/v1/confirmation/token/{walletID}", confTokenHandler)
 
 	initAnonymization(useCryptoPAn)
 
@@ -448,7 +350,8 @@ func main() {
 	defer flusher.Stop()
 
 	server := http.Server{
-		Addr: fmt.Sprintf(":%d", srvPort),
+		Addr:    fmt.Sprintf(":%d", srvPort),
+		Handler: router,
 	}
 	if useAcme {
 		setupAcme(fqdn, &server)
