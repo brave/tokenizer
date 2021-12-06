@@ -7,7 +7,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -16,20 +15,17 @@ import (
 	"net/url"
 	"os"
 	"time"
-	"unsafe"
 
 	"github.com/Yawning/cryptopan"
+	_ "github.com/brave-experiments/ia2/init_rand"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/hf/nsm"
-	"github.com/hf/nsm/request"
 	"github.com/mdlayher/vsock"
 	"github.com/milosgajdos/tenus"
 	"github.com/paulbellamy/ratecounter"
 	uuid "github.com/satori/go.uuid"
 
 	"golang.org/x/crypto/acme/autocert"
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -195,67 +191,6 @@ func initAnonymization(useCryptoPAn bool) {
 	}
 }
 
-// getNSMRandomness obtains cryptographically secure random bytes from the
-// Nitro's NSM and uses them to initialize the system's random number
-// generator.  If we don't do that, our system we start with no entropy, which
-// means that calls to /dev/(u)random will block.
-func getNSMRandomness() error {
-	s, err := nsm.OpenDefaultSession()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = s.Close()
-	}()
-
-	fd, err := os.OpenFile(entropySeedDevice, os.O_WRONLY, os.ModePerm)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err = fd.Close(); err != nil {
-			log.Printf("Failed to close %q: %s", entropySeedDevice, err)
-		}
-	}()
-
-	var written int
-	for totalWritten := 0; totalWritten < entropySeedSize; {
-		// We ignore the error because of a bug that will return an error
-		// despite having obtained an attestation document:
-		// https://github.com/hf/nsm/issues/2
-		res, _ := s.Send(&request.GetRandom{})
-		if res.Error != "" {
-			return errors.New(string(res.Error))
-		}
-		if res.GetRandom == nil {
-			return errors.New("no GetRandom part in NSM's response")
-		}
-		if len(res.GetRandom.Random) == 0 {
-			return errors.New("got no random bytes from NSM")
-		}
-
-		// Write NSM-provided random bytes to the system's entropy pool to seed
-		// it.
-		if written, err = fd.Write(res.GetRandom.Random); err != nil {
-			return err
-		}
-		totalWritten += written
-
-		// Tell the system to update its entropy count.
-		if _, _, errno := unix.Syscall(
-			unix.SYS_IOCTL,
-			uintptr(fd.Fd()),
-			uintptr(unix.RNDADDTOENTCNT),
-			uintptr(unsafe.Pointer(&written)),
-		); errno != 0 {
-			log.Printf("Failed to update system's entropy count: %s", errno)
-		}
-	}
-
-	log.Println("Initialized the system's entropy pool.")
-	return nil
-}
-
 // assignLoAddr assigns an IP address to the loopback interface, which is
 // necessary because Nitro enclaves don't do that out-of-the-box.  We need the
 // loopback interface because we run a simple TCP proxy that listens on
@@ -308,10 +243,6 @@ func main() {
 	}
 
 	if !*ignoreNitro {
-		if err = getNSMRandomness(); err != nil {
-			log.Fatalf("Failed to initialize the system's entropy pool: %s", err)
-		}
-
 		if err = assignLoAddr(); err != nil {
 			log.Fatalf("Failed to assign address to lo: %s", err)
 		}

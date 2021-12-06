@@ -1,4 +1,4 @@
-module github.com/brave-intl/ia2/v2
+module github.com/brave-experiments/ia2
 
 go 1.15
 
