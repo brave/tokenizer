@@ -12,7 +12,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"time"
 
@@ -37,14 +36,25 @@ const (
 
 	// We are unable to configure ia2 at runtime, which is why our
 	// configuration options are constants.
-	useAcme       = false  // Use ACME to obtain certificates.
-	debug         = true   // Enable debug mode, which logs extra information.
-	useCryptoPAn  = true   // Use Crypto-PAn anonymization instead of a HMAC.
-	fqdn          = "TODO" // FQDN for TLS certificate.
-	broker        = "TODO" // Kafka broker URL to send anonymized IP addresses to.
-	topic         = "TODO" // Kafka topic.
-	srvPort       = 8080   // Port that our HTTPS server is listening on.
-	flushInterval = 300    // Time interval after which we flush addresses to the broker.
+
+	// useAcme determines if we use ACME to obtain certificates.
+	useAcme = false
+	// debug determines if we enable debug mode, which logs extra information.
+	debug = true
+	// useCryptoPAn uses Crypto-PAn anonymization instead of a HMAC.
+	useCryptoPAn = true
+	// fqdn refers to the fully qualified domain name for our TLS certificate.
+	fqdn = "TODO"
+	// srvPort is the port that our HTTPS server is listening on.
+	srvPort = 8080
+	// flushInterval is the time interval after which we flush anonymized
+	// addresses to our Kafka bridge.
+	flushInterval = 300
+	// kafkaBridgeURL points to a local socat listener that translates AF_INET
+	// to AF_VSOCK.  In theory, we could talk directly to the AF_VSOCK address
+	// of our Kafka bridge and get rid of socat but that makes testing more
+	// annoying.  It easier to deal with tests via AF_INET.
+	kafkaBridgeURL = "http://127.0.0.1:8081"
 )
 
 var certSha256 string
@@ -271,12 +281,8 @@ func main() {
 	setEnvVar("HTTP_PROXY", "socks5://127.0.0.1:1080")
 	setEnvVar("HTTPS_PROXY", "socks5://127.0.0.1:1080")
 
-	log.Printf("Initializing new flusher with interval %ds and broker %s.", flushInterval, broker)
-	brokerURL, err := url.Parse(broker)
-	if err != nil {
-		log.Fatal(err)
-	}
-	flusher = NewFlusher(flushInterval, *brokerURL, topic)
+	log.Printf("Initializing new flusher with interval %ds.", flushInterval)
+	flusher = NewFlusher(flushInterval, kafkaBridgeURL)
 	flusher.Start()
 	defer flusher.Stop()
 
