@@ -1,6 +1,7 @@
-package init_rand
+package randseed
 
 import (
+	"errors"
 	"log"
 	"os"
 	"unsafe"
@@ -21,6 +22,12 @@ const (
 // generator.  If we don't do that, our system we start with no entropy, which
 // means that calls to /dev/(u)random will block.
 func init() {
+	// Abort if there's no /dev/nsm; e.g., when running unit tests outside of a
+	// Nitro Enclave.
+	if _, err := os.Stat("/dev/nsm"); errors.Is(err, os.ErrNotExist) {
+		return
+	}
+
 	s, err := nsm.OpenDefaultSession()
 	if err != nil {
 		log.Fatal(err)

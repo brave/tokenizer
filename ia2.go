@@ -16,7 +16,8 @@ import (
 	"time"
 
 	"github.com/Yawning/cryptopan"
-	_ "github.com/brave-experiments/ia2/init_rand"
+	_ "github.com/brave-experiments/ia2/randseed"
+	nitro "github.com/brave-experiments/nitro-enclave-utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/mdlayher/vsock"
@@ -24,8 +25,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 
 	"golang.org/x/crypto/acme/autocert"
-
-	nitro "github.com/brave-experiments/nitro-enclave-utils"
 )
 
 const (
