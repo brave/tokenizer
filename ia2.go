@@ -234,6 +234,17 @@ func setEnvVar(key, value string) {
 	}
 }
 
+func initRouter() http.Handler {
+	router := chi.NewRouter()
+	router.Use(middleware.Logger)
+	router.Get("/attest", attestationHandler)
+	router.Get("/submit", submitHandler)
+	// The following endpoint must be identical to what our ads server exposes.
+	router.Get("/v1/confirmation/token/{walletID}", confTokenHandler)
+
+	return router
+}
+
 func main() {
 	var err error
 
@@ -259,12 +270,7 @@ func main() {
 	}
 
 	log.Println("Setting up HTTP handlers.")
-	router := chi.NewRouter()
-	router.Use(middleware.Logger)
-	router.Get("/attest", attestationHandler)
-	router.Get("/submit", submitHandler)
-	// The following endpoint must be identical to what our ads server exposes.
-	router.Get("/v1/confirmation/token/{walletID}", confTokenHandler)
+	router := initRouter()
 
 	initAnonymization(useCryptoPAn)
 

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -20,6 +21,12 @@ const (
 	fastlyClientIP = "Fastly-Client-IP"
 )
 
+var (
+	errBadWalletFmt   = errors.New("wallet ID has bad format")
+	errNoFastlyHeader = fmt.Errorf("found no %q header", fastlyClientIP)
+	errBadAddrFormat  = fmt.Errorf("bad IP address format in %q header", fastlyClientIP)
+)
+
 // confTokenHandler takes as input forwarded confirmation token requests from
 // Fastly.  We then retrieve the client's wallet ID from the URL, its IP
 // address from Fastly's proprietary header, and shove both into our
@@ -29,20 +36,20 @@ func confTokenHandler(w http.ResponseWriter, r *http.Request) {
 	rawWalletID := chi.URLParam(r, "walletID")
 	walletID, err := uuid.FromString(rawWalletID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("wallet ID is invalid: %s", err.Error()), http.StatusBadRequest)
+		http.Error(w, errBadWalletFmt.Error(), http.StatusBadRequest)
 		return
 	}
 
 	rawAddr := r.Header.Get(fastlyClientIP)
 	if rawAddr == "" {
-		http.Error(w, fmt.Sprintf("found no %q header", fastlyClientIP), http.StatusBadRequest)
+		http.Error(w, errNoFastlyHeader.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Fetch the client's IP address from Fastly's proprietary header.
 	addr := net.ParseIP(rawAddr)
 	if addr == nil {
-		http.Error(w, fmt.Sprintf("invalid IP address format in %q header", fastlyClientIP), http.StatusBadRequest)
+		http.Error(w, errBadAddrFormat.Error(), http.StatusBadRequest)
 		return
 	}
 	anonymizeAddr(&clientRequest{Addr: addr, Wallet: walletID})
@@ -129,5 +136,7 @@ func anonymizeAddr(req *clientRequest) {
 		anonAddr = h.Sum(nil)
 	}
 	req.AnonAddr = anonAddr
-	flusher.Submit(req)
+	if flusher != nil {
+		flusher.Submit(req)
+	}
 }
