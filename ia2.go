@@ -20,19 +20,19 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/mdlayher/vsock"
-	"github.com/milosgajdos/tenus"
 	"github.com/paulbellamy/ratecounter"
 	uuid "github.com/satori/go.uuid"
 
 	"golang.org/x/crypto/acme/autocert"
+
+	nitro "github.com/brave-experiments/nitro-enclave-utils"
 )
 
 const (
-	acmeCertCacheDir  = "cert-cache"
-	hmacKeySize       = 20
-	entropySeedDevice = "/dev/random"
-	entropySeedSize   = 2048
-	nonceSize         = 40 // The number of hex digits in a nonce.
+	acmeCertCacheDir = "cert-cache"
+	hmacKeySize      = 20
+	seedDevice       = "/dev/random"
+	seedSize         = 2048
 
 	// We are unable to configure ia2 at runtime, which is why our
 	// configuration options are constants.
@@ -57,12 +57,11 @@ const (
 	kafkaBridgeURL = "http://127.0.0.1:8081"
 )
 
-var certSha256 string
+var certSha256 [sha256.Size]byte
 var hmacKey []byte
 var cryptoPAn *cryptopan.Cryptopan
 var counter = ratecounter.NewRateCounter(1 * time.Second)
 var flusher *Flusher
-var nonceRegExp = fmt.Sprintf("[a-f0-9]{%d}", nonceSize)
 
 // clientRequest represents a client's confirmation token request.  It contains
 // the client's IP address, wallet ID, and eventually its anonymized IP
@@ -162,8 +161,8 @@ func setCertFingerprint(rawData []byte) {
 				log.Fatalf("Failed to parse X509 certificate: %v", err)
 			}
 			if !cert.IsCA {
-				certSha256 = fmt.Sprintf("%x", sha256.Sum256(cert.Raw))
-				log.Printf("SHA-256 of server's certificate: %s", certSha256)
+				certSha256 = sha256.Sum256(cert.Raw)
+				log.Printf("SHA-256 of server's certificate: %x", certSha256[:])
 				return
 			}
 		}
@@ -201,30 +200,6 @@ func initAnonymization(useCryptoPAn bool) {
 	}
 }
 
-// assignLoAddr assigns an IP address to the loopback interface, which is
-// necessary because Nitro enclaves don't do that out-of-the-box.  We need the
-// loopback interface because we run a simple TCP proxy that listens on
-// 127.0.0.1:1080 and converts AF_INET to AF_VSOCK.
-func assignLoAddr() error {
-	addrStr := "127.0.0.1/8"
-	l, err := tenus.NewLinkFrom("lo")
-	if err != nil {
-		return err
-	}
-	addr, network, err := net.ParseCIDR(addrStr)
-	if err != nil {
-		return err
-	}
-	if err = l.SetLinkIp(addr, network); err != nil {
-		return err
-	}
-	if err = l.SetLinkUp(); err != nil {
-		return err
-	}
-	log.Printf("Assigned %s to loopback interface.", addrStr)
-	return nil
-}
-
 // setEnvVar sets an environment variable identified by key to value.
 func setEnvVar(key, value string) {
 	if err := os.Setenv(key, value); err != nil {
@@ -237,7 +212,7 @@ func setEnvVar(key, value string) {
 func initRouter() http.Handler {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
-	router.Get("/attest", attestationHandler)
+	router.Get("/attest", nitro.GetAttestationHandler(certSha256))
 	router.Get("/submit", submitHandler)
 	// The following endpoint must be identical to what our ads server exposes.
 	router.Get("/v1/confirmation/token/{walletID}", confTokenHandler)
@@ -264,7 +239,11 @@ func main() {
 	}
 
 	if !*ignoreNitro {
-		if err = assignLoAddr(); err != nil {
+		if err = nitro.SeedEntropyPool(seedDevice, seedSize); err != nil {
+			log.Fatalf("Failed to initialize the system's entropy pool: %s", err)
+		}
+
+		if err = nitro.AssignLoAddr(); err != nil {
 			log.Fatalf("Failed to assign address to lo: %s", err)
 		}
 	}

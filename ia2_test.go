@@ -27,21 +27,6 @@ func BenchmarkAnonymizingPerformance(b *testing.B) {
 	}
 }
 
-func TestIsNonceValid(t *testing.T) {
-	if isNonceValid("") {
-		t.Error("empty nonce was mistakenly accepted")
-	}
-	if isNonceValid("XRsp9vT9CDEZF3tu4xDRZ1Dnmayyc1bwKQ3f+Q==") {
-		t.Error("base64 nonce was mistakenly accepted")
-	}
-	if !isNonceValid("0000000000000000000000000000000000000000") {
-		t.Error("all-0 nonce was mistakenly rejected")
-	}
-	if !isNonceValid("0123456789abcdef0123456789abcdef01234567") {
-		t.Error("hex nonce was mistakenly rejected")
-	}
-}
-
 func TestSetEnvVar(t *testing.T) {
 	setEnvVar("foo", "bar")
 	if os.Getenv("foo") != "bar" {

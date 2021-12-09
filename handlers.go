@@ -3,13 +3,10 @@ package main
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
-	"regexp"
 
 	"github.com/go-chi/chi/v5"
 	uuid "github.com/satori/go.uuid"
@@ -77,49 +74,6 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	anonymizeAddr(&clientRequest{Addr: addr})
-}
-
-// attestationHandler takes as input a nonce and asks the hypervisor to create
-// an attestation document that contains the given nonce and our HTTPS
-// certificate's SHA-256 hash.  The resulting Base64-encoded attestation
-// document is returned to the client.
-func attestationHandler(w http.ResponseWriter, r *http.Request) {
-	if !isValidRequest(w, r) {
-		return
-	}
-	nonce := r.FormValue("nonce")
-	if nonce == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "no nonce given\n")
-		return
-	}
-	if !isNonceValid(nonce) {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "bad nonce format\n")
-		return
-	}
-	// Decode hex-encoded nonce.
-	rawNonce, err := hex.DecodeString(nonce)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "failed to decode nonce\n")
-		return
-	}
-
-	rawDoc, err := attest(rawNonce, []byte(certSha256), nil)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "attestation failed: %v\n", err)
-		return
-	}
-	b64Doc := base64.StdEncoding.EncodeToString(rawDoc)
-	fmt.Fprintln(w, b64Doc)
-}
-
-// isNonceValid returns true if the given nonce is correctly formatted.
-func isNonceValid(nonce string) bool {
-	match, _ := regexp.MatchString(nonceRegExp, nonce)
-	return match
 }
 
 // anonymizeAddr takes as input a client request (consisting of a client's IP
