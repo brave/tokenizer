@@ -1,7 +1,7 @@
 github.com/Yawning/cryptopan v0.0.0-20170504040949-65bca51288fe h1:SKdmPMOww/faIbffys2UgnZHlQJETCw7N18AaYUYf2M=
 github.com/Yawning/cryptopan v0.0.0-20170504040949-65bca51288fe/go.mod h1:tGK+sH41V0mnyFBVWQoRyj7neHPwQwPM1KJ3PfS6dTI=
-github.com/brave-experiments/nitro-enclave-utils v0.0.0-20211209211243-48be002b0998 h1:fbpCMKUXyZO3rW2fbHOkzh89EXtbUlspL69UxX204Q8=
-github.com/brave-experiments/nitro-enclave-utils v0.0.0-20211209211243-48be002b0998/go.mod h1:S1UwtrhVrLMbY1lxD9sfcOyzA/jUNw2V6/ugFqXcyhI=
+github.com/brave-experiments/nitro-enclave-utils v0.0.0-20211210190345-352454eea7b5 h1:sKi1i4nwonGQBkVTqFpmLINyvyLsCym9cgcfaTSp9e8=
+github.com/brave-experiments/nitro-enclave-utils v0.0.0-20211210190345-352454eea7b5/go.mod h1:S1UwtrhVrLMbY1lxD9sfcOyzA/jUNw2V6/ugFqXcyhI=
 github.com/docker/libcontainer v2.2.1+incompatible h1:++SbbkCw+X8vAd4j2gOCzZ2Nn7s2xFALTf7LZKmM1/0=
 github.com/docker/libcontainer v2.2.1+incompatible/go.mod h1:osvj61pYsqhNCMLGX31xr7klUBhHb/ZBuXS0o1Fvwbw=
 github.com/fxamacker/cbor/v2 v2.2.0/go.mod h1:TA1xS00nchWmaBnEIxPSE5oHLuJBAVvqrtAnWBwBCVo=
@@ -50,8 +50,9 @@ golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20201119102817-f84b799fce68/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210423082822-04245dca01da/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.0.0-20211209171907-798191bca915 h1:P+8mCzuEpyszAT6T42q0sxU+eveBAF/cJ2Kp0x6/8+0=
 golang.org/x/sys v0.0.0-20211209171907-798191bca915/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.0.0-20211210111614-af8b64212486 h1:5hpz5aRr+W1erYCL5JRhSUBJRph7l9XkNveoExlrKYk=
+golang.org/x/sys v0.0.0-20211210111614-af8b64212486/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.3/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=

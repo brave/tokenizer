@@ -30,8 +30,6 @@ import (
 const (
 	acmeCertCacheDir = "cert-cache"
 	hmacKeySize      = 20
-	seedDevice       = "/dev/random"
-	seedSize         = 2048
 
 	// We are unable to configure ia2 at runtime, which is why our
 	// configuration options are constants.
@@ -238,7 +236,7 @@ func main() {
 	}
 
 	if !*ignoreNitro {
-		if err = nitro.SeedEntropyPool(seedDevice, seedSize); err != nil {
+		if err = nitro.SeedEntropyPool(); err != nil {
 			log.Fatalf("Failed to initialize the system's entropy pool: %s", err)
 		}
 
