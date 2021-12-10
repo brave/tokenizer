@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/Yawning/cryptopan v0.0.0-20170504040949-65bca51288fe
-	github.com/brave-experiments/nitro-enclave-utils v0.0.0-20211210190345-352454eea7b5
+	github.com/brave-experiments/nitro-enclave-utils v0.0.0-20211210201151-918de2a8f178
 	github.com/fxamacker/cbor/v2 v2.3.0 // indirect
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/google/go-cmp v0.5.6 // indirect
