@@ -69,22 +69,6 @@ type clientRequest struct {
 	Wallet   uuid.UUID
 }
 
-// isValidRequest returns true if the given request is POST and its form data
-// could be successfully parsed.
-func isValidRequest(w http.ResponseWriter, r *http.Request) bool {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "got %s but expected %s request\n", r.Method, http.MethodPost)
-		return false
-	}
-	if err := r.ParseForm(); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "failed to parse %s data: %v\n", http.MethodPost, err)
-		return false
-	}
-	return true
-}
-
 // setupAcme attempts to retrieve an HTTPS certificate from Let's Encrypt for
 // the given FQDN.  Note that we are unable to cache certificates across
 // enclave restarts, so the enclave requests a new certificate each time it
@@ -210,7 +194,7 @@ func initRouter() http.Handler {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 	router.Get("/attest", nitro.GetAttestationHandler(certSha256))
-	router.Get("/submit", submitHandler)
+	router.Post("/address", addressHandler)
 	// The following endpoint must be identical to what our ads server exposes.
 	router.Get("/v1/confirmation/token/{walletID}", confTokenHandler)
 

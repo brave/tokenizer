@@ -19,9 +19,11 @@ const (
 )
 
 var (
-	errBadWalletFmt   = errors.New("wallet ID has bad format")
-	errNoFastlyHeader = fmt.Errorf("found no %q header", fastlyClientIP)
-	errBadAddrFormat  = fmt.Errorf("bad IP address format in %q header", fastlyClientIP)
+	errBadWalletFmt        = errors.New("wallet ID has bad format")
+	errNoFastlyHeader      = fmt.Errorf("found no %q header", fastlyClientIP)
+	errBadFastlyAddrFormat = fmt.Errorf("bad IP address format in %q header", fastlyClientIP)
+	errNoAddr              = errors.New("could not find addr in POST form data")
+	errBadAddrFormat       = errors.New("failed to parse given IP address")
 )
 
 // confTokenHandler takes as input forwarded confirmation token requests from
@@ -46,30 +48,24 @@ func confTokenHandler(w http.ResponseWriter, r *http.Request) {
 	// Fetch the client's IP address from Fastly's proprietary header.
 	addr := net.ParseIP(rawAddr)
 	if addr == nil {
-		http.Error(w, errBadAddrFormat.Error(), http.StatusBadRequest)
+		http.Error(w, errBadFastlyAddrFormat.Error(), http.StatusBadRequest)
 		return
 	}
 	anonymizeAddr(&clientRequest{Addr: addr, Wallet: walletID})
 }
 
-// submitHandler takes as input an IP address, anonymizes it, and hands it over
+// addressHandler takes as input an IP address, anonymizes it, and hands it over
 // to our flusher, which will send the anonymized IP address to our Kafka
 // broker.
-func submitHandler(w http.ResponseWriter, r *http.Request) {
-	if !isValidRequest(w, r) {
-		return
-	}
-	addrStr := r.FormValue("addr")
+func addressHandler(w http.ResponseWriter, r *http.Request) {
+	addrStr := r.PostFormValue("addr")
 	if addrStr == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "no IP address given\n")
+		http.Error(w, errNoAddr.Error(), http.StatusBadRequest)
 		return
 	}
-
 	addr := net.ParseIP(addrStr)
 	if addr == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "invalid IP address format\n")
+		http.Error(w, errBadAddrFormat.Error(), http.StatusBadRequest)
 		return
 	}
 
