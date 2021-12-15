@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func expect(t *testing.T, resp *http.Response, statusCode int, errMsg error) {
@@ -31,7 +33,10 @@ func expect(t *testing.T, resp *http.Response, statusCode int, errMsg error) {
 }
 
 func testReq(t *testing.T, req *http.Request, statusCode int, errMsg error) {
-	router := initRouter()
+	router := chi.NewRouter()
+	router.Post("/address", addressHandler)
+	router.Get("/v1/confirmation/token/{walletID}", confTokenHandler)
+
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	expect(t, rec.Result(), statusCode, errMsg)

@@ -26,6 +26,15 @@ var (
 	errBadAddrFormat       = errors.New("failed to parse given IP address")
 )
 
+// clientRequest represents a client's confirmation token request.  It contains
+// the client's IP address, wallet ID, and eventually its anonymized IP
+// address.
+type clientRequest struct {
+	Addr     net.IP
+	AnonAddr []byte
+	Wallet   uuid.UUID
+}
+
 // confTokenHandler takes as input forwarded confirmation token requests from
 // Fastly.  We then retrieve the client's wallet ID from the URL, its IP
 // address from Fastly's proprietary header, and shove both into our
