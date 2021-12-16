@@ -6,7 +6,7 @@ test:
 	go test -cover ./...
 
 lint:
-	golangci-lint run -E gofmt -E golint --exclude-use-default=false
+	golangci-lint run -E gofmt -E revive --exclude-use-default=false
 
 image:
 	$(eval IMAGE=$(shell ko publish --local . 2>/dev/null))
