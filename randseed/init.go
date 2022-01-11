@@ -19,8 +19,8 @@ const (
 
 // init obtains cryptographically secure random bytes from the Nitro Secure
 // Module (NSM) and uses them to initialize the system's random number
-// generator.  If we don't do that, our system we start with no entropy, which
-// means that calls to /dev/(u)random will block.
+// generator.  If we don't do that, our system is going to start with no
+// entropy, which means that calls to /dev/(u)random will block.
 func init() {
 	// Abort if there's no /dev/nsm; e.g., when running unit tests outside of a
 	// Nitro Enclave.
