@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -43,8 +44,7 @@ func testReq(t *testing.T, req *http.Request, statusCode int, errMsg error) {
 }
 
 func TestConfTokenHandler(t *testing.T) {
-	hmacKey = make([]byte, hmacKeySize)
-
+	anonymizer = NewAnonymizer(methodCryptoPAn, time.Hour)
 	testReq(t,
 		httptest.NewRequest(http.MethodGet, "/v1/confirmation/token/broken-wallet", nil),
 		http.StatusBadRequest,
@@ -69,8 +69,7 @@ func TestConfTokenHandler(t *testing.T) {
 }
 
 func TestAddressHandler(t *testing.T) {
-	hmacKey = make([]byte, hmacKeySize)
-
+	anonymizer = NewAnonymizer(methodCryptoPAn, time.Hour)
 	testReq(t,
 		httptest.NewRequest(http.MethodGet, "/address", nil),
 		http.StatusMethodNotAllowed,

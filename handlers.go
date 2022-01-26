@@ -4,8 +4,6 @@ package main
 // then submitted to the flusher (see flusher.go).
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"net"
@@ -30,11 +28,12 @@ var (
 )
 
 // clientRequest represents a client's confirmation token request.  It contains
-// the client's IP address, wallet ID, and eventually its anonymized IP
-// address.
+// the client's IP address, wallet ID, and we augment it with the client's
+// anonymized IP address and the corresponding key ID.
 type clientRequest struct {
 	Addr     net.IP
 	AnonAddr []byte
+	KeyID    keyID
 	Wallet   uuid.UUID
 }
 
@@ -89,15 +88,7 @@ func addressHandler(w http.ResponseWriter, r *http.Request) {
 // HMAC-based anonymization, depending on what's configured.  Once the address
 // is anonymized, the tuple is forwarded to our flushing component.
 func anonymizeAddr(req *clientRequest) {
-	var anonAddr []byte
-	if hmacKey == nil {
-		anonAddr = cryptoPAn.Anonymize(req.Addr)
-	} else {
-		h := hmac.New(sha256.New, hmacKey)
-		h.Write([]byte(req.Addr))
-		anonAddr = h.Sum(nil)
-	}
-	req.AnonAddr = anonAddr
+	req.AnonAddr, req.KeyID = anonymizer.Anonymize(req.Addr)
 	if flusher != nil {
 		flusher.Submit(req)
 	}
