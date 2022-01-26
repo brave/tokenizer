@@ -1,5 +1,8 @@
 package main
 
+// This file implements HTTP handlers that take as input IP addresses that are
+// then submitted to the flusher (see flusher.go).
+
 import (
 	"crypto/hmac"
 	"crypto/sha256"

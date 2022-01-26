@@ -1,5 +1,9 @@
 package main
 
+// This file implements a flusher.  Callers can submit anonymized IP addresses
+// to the flusher.  The flusher periodically POSTs all accumulated addresses to
+// an HTTP-to-Kafka bridge that's running outside of the enclave.
+
 import (
 	"bytes"
 	"encoding/json"

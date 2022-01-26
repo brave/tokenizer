@@ -1,5 +1,10 @@
 package main
 
+// This file implements a TCP proxy that translates from AF_INET to AF_VSOCK.
+// That allows enclave-internal code (e.g., flusher.go) to establish TCP
+// connections to enclave-external services without having to deal with
+// AF_VSOCK.
+
 import (
 	"log"
 	"net"
