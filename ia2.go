@@ -5,8 +5,9 @@ import (
 	"log"
 	"net/http"
 
+	_ "github.com/brave-experiments/nitro-enclave-utils/randseed"
+
 	"github.com/Yawning/cryptopan"
-	_ "github.com/brave-experiments/ia2/randseed"
 	nitro "github.com/brave-experiments/nitro-enclave-utils"
 )
 
