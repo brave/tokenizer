@@ -22,7 +22,8 @@ const (
 	methodHMAC
 )
 
-type keyID string
+// KeyID represents the ID of the anonymizer's current key.
+type KeyID string
 
 // Anonymizer implements an object that anonymizes IP addresses and
 // periodically rotates the key that we use to anonymize addresses.
@@ -38,7 +39,7 @@ type Anonymizer struct {
 // Anonymize takes as input an IP address and returns a byte slice that
 // contains the anonymized IP address and the key ID that was used to anonymize
 // the IP address.
-func (a *Anonymizer) Anonymize(addr net.IP) ([]byte, keyID) {
+func (a *Anonymizer) Anonymize(addr net.IP) ([]byte, KeyID) {
 	a.Lock()
 	defer a.Unlock()
 
@@ -52,17 +53,17 @@ func (a *Anonymizer) Anonymize(addr net.IP) ([]byte, keyID) {
 	}
 
 	sum := sha256.Sum256(a.key)
-	return anonAddr, keyID(sum[:])
+	return anonAddr, KeyID(sum[:])
 }
 
 // GetKeyID returns the ID of the currently used anonymization key.  The key ID
 // is the SHA-256 over the key.
-func (a *Anonymizer) GetKeyID() keyID {
+func (a *Anonymizer) GetKeyID() KeyID {
 	a.Lock()
 	defer a.Unlock()
 
 	sum := sha256.Sum256(a.key)
-	return keyID(sum[:])
+	return KeyID(sum[:])
 }
 
 // initKeys (re-)initializes the anonymization key.

@@ -11,7 +11,8 @@ func TestAnonymizer(t *testing.T) {
 	a := NewAnonymizer(methodCryptoPAn, time.Hour)
 	defer a.Stop()
 
-	if a.GetKeyID() != a.GetKeyID() {
+	keyID1, keyID2 := a.GetKeyID(), a.GetKeyID()
+	if keyID1 != keyID2 {
 		t.Error("Key ID expected to be identical but is different.")
 	}
 

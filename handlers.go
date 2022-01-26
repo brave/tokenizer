@@ -33,7 +33,7 @@ var (
 type clientRequest struct {
 	Addr     net.IP
 	AnonAddr []byte
-	KeyID    keyID
+	KeyID    KeyID
 	Wallet   uuid.UUID
 }
 
