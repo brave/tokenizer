@@ -2,6 +2,8 @@ github.com/Yawning/cryptopan v0.0.0-20170504040949-65bca51288fe h1:SKdmPMOww/faI
 github.com/Yawning/cryptopan v0.0.0-20170504040949-65bca51288fe/go.mod h1:tGK+sH41V0mnyFBVWQoRyj7neHPwQwPM1KJ3PfS6dTI=
 github.com/brave-experiments/nitro-enclave-utils v0.1.1 h1:+lWGE6kwjdd5k56xBDB/DtE5iWrTE6HSTyxw2id9sxQ=
 github.com/brave-experiments/nitro-enclave-utils v0.1.1/go.mod h1:0+kpF+orBGgGcRh3NxIhF8wgxT1WhdX7Wjz6BakYoMM=
+github.com/brave-experiments/nitro-enclave-utils v0.2.0 h1:zNjHwqI9N+2RdiBxhzszoh5895pr1TZrm292tndIYZY=
+github.com/brave-experiments/nitro-enclave-utils v0.2.0/go.mod h1:0+kpF+orBGgGcRh3NxIhF8wgxT1WhdX7Wjz6BakYoMM=
 github.com/docker/libcontainer v2.2.1+incompatible h1:++SbbkCw+X8vAd4j2gOCzZ2Nn7s2xFALTf7LZKmM1/0=
 github.com/docker/libcontainer v2.2.1+incompatible/go.mod h1:osvj61pYsqhNCMLGX31xr7klUBhHb/ZBuXS0o1Fvwbw=
 github.com/fxamacker/cbor/v2 v2.2.0/go.mod h1:TA1xS00nchWmaBnEIxPSE5oHLuJBAVvqrtAnWBwBCVo=

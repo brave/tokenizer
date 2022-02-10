@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/Yawning/cryptopan v0.0.0-20170504040949-65bca51288fe
-	github.com/brave-experiments/nitro-enclave-utils v0.1.1
+	github.com/brave-experiments/nitro-enclave-utils v0.2.0
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/hf/nsm v0.0.0-20211106132757-1ae65a6a69ae
 	github.com/mdlayher/vsock v1.0.0
