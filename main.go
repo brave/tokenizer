@@ -34,6 +34,7 @@ const (
 var (
 	flusher    *Flusher
 	anonymizer *Anonymizer
+	l          = log.New(os.Stderr, "ia2: ", log.Ldate|log.Ltime|log.LUTC|log.Lshortfile)
 )
 
 func main() {
@@ -62,19 +63,19 @@ func main() {
 	// running on the parent EC2 instance.
 	vproxy, err := NewVProxy()
 	if err != nil {
-		log.Fatalf("Failed to initialize vsock proxy: %s", err)
+		l.Fatalf("Failed to initialize vsock proxy: %s", err)
 	}
 	done := make(chan bool)
 	go vproxy.Start(done)
 	<-done
 
-	log.Printf("Initializing new flusher with interval %ds.", flushInterval)
+	l.Printf("Initializing new flusher with interval %ds.", flushInterval)
 	flusher = NewFlusher(flushInterval, kafkaBridgeURL)
 	flusher.Start()
 	defer flusher.Stop()
 
 	// Start blocks for as long as the enclave is alive.
 	if err := enclave.Start(); err != nil {
-		log.Fatalf("Enclave terminated: %v", err)
+		l.Fatalf("Enclave terminated: %v", err)
 	}
 }

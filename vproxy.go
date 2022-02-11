@@ -6,7 +6,6 @@ package main
 // AF_VSOCK.
 
 import (
-	"log"
 	"net"
 
 	"github.com/mdlayher/vsock"
@@ -33,27 +32,27 @@ func (p *VProxy) Start(done chan bool) {
 	// Bind to TCP address.
 	ln, err := net.Listen("tcp", bindAddr)
 	if err != nil {
-		log.Fatalf("Failed to bind to %s: %s", bindAddr, err)
+		l.Fatalf("Failed to bind to %s: %s", bindAddr, err)
 	}
 	done <- true // Signal to caller that we're ready to accept connections.
 
 	for {
 
-		log.Printf("Waiting for new outgoing TCP connection.")
+		l.Printf("Waiting for new outgoing TCP connection.")
 		lconn, err := ln.Accept()
 		if err != nil {
-			log.Printf("Failed to accept proxy connection: %s", err)
+			l.Printf("Failed to accept proxy connection: %s", err)
 			continue
 		}
-		log.Printf("Accepted new outgoing TCP connection.")
+		l.Printf("Accepted new outgoing TCP connection.")
 
 		// Establish connection with SOCKS proxy via our vsock interface.
 		rconn, err := vsock.Dial(p.raddr.ContextID, p.raddr.Port, nil)
 		if err != nil {
-			log.Printf("Failed to establish connection to SOCKS proxy: %s", err)
+			l.Printf("Failed to establish connection to SOCKS proxy: %s", err)
 			continue
 		}
-		log.Println("Established connection with SOCKS proxy over vsock.")
+		l.Println("Established connection with SOCKS proxy over vsock.")
 
 		// Now pipe data from left to right and vice versa.
 		go p.pipe(lconn, rconn)
@@ -64,25 +63,26 @@ func (p *VProxy) Start(done chan bool) {
 // pipe forwards packets from src to dst and from dst to src.
 func (p *VProxy) pipe(src, dst net.Conn) {
 	defer func() {
+		l.Println("Done piping packets from src to dst.")
 		if err := src.Close(); err != nil {
-			log.Printf("Failed to close connection: %s", err)
+			l.Printf("Failed to close connection: %s", err)
 		}
 	}()
 	buf := make([]byte, 0xffff)
 	for {
 		n, err := src.Read(buf)
 		if err != nil {
-			log.Printf("Failed to read from src connection: %s", err)
+			l.Printf("Failed to read from src connection: %s", err)
 			return
 		}
 		b := buf[:n]
 		n, err = dst.Write(b)
 		if err != nil {
-			log.Printf("Failed to write to dst connection: %s", err)
+			l.Printf("Failed to write to dst connection: %s", err)
 			return
 		}
 		if n != len(b) {
-			log.Printf("Only wrote %d out of %d bytes.", n, len(b))
+			l.Printf("Only wrote %d out of %d bytes.", n, len(b))
 			return
 		}
 	}

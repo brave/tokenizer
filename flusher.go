@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -86,8 +85,9 @@ func (f *Flusher) Start() {
 			case <-f.done:
 				return
 			case <-ticker.C:
+				l.Printf("Attempting to send %d anonymized addresses to Kafka bridge.", len(f.addrs))
 				if err := f.sendBatch(); err != nil {
-					log.Printf("Failed to send batch: %s", err)
+					l.Printf("Failed to send batch: %s", err)
 				}
 			}
 		}
@@ -117,7 +117,7 @@ func (f *Flusher) sendBatch() error {
 		return fmt.Errorf("got HTTP code %d from Kafka bridge", resp.StatusCode)
 	}
 
-	log.Printf("Flushed %d addresses to Kafka bridge.", len(f.addrs))
+	l.Printf("Flushed %d addresses to Kafka bridge.", len(f.addrs))
 	f.addrs = make(addresses)
 
 	return nil
@@ -127,6 +127,7 @@ func (f *Flusher) sendBatch() error {
 func (f *Flusher) Stop() {
 	f.done <- true
 	f.wg.Wait()
+	l.Println("Stopping flusher.")
 }
 
 // Submit submits the given anonymized IP address to the flusher.
@@ -142,4 +143,5 @@ func (f *Flusher) Submit(req *clientRequest) {
 	} else {
 		f.addrs[req.Wallet][string(req.AnonAddr)] = empty{}
 	}
+	l.Print(f.addrs)
 }

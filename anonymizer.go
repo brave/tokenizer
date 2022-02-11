@@ -8,7 +8,6 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
-	"log"
 	"net"
 	"sync"
 	"time"
@@ -53,6 +52,7 @@ func (a *Anonymizer) Anonymize(addr net.IP) ([]byte, KeyID) {
 	}
 
 	sum := sha256.Sum256(a.key)
+	l.Printf("Anonymized %s to %x using key ID %x.", addr, anonAddr, sum)
 	return anonAddr, KeyID(sum[:])
 }
 
@@ -75,18 +75,18 @@ func (a *Anonymizer) initKeys() {
 	if a.method == methodHMAC {
 		a.key = make([]byte, hmacKeySize)
 		if _, err = rand.Read(a.key); err != nil {
-			log.Fatal(err)
+			l.Fatal(err)
 		}
-		log.Println("Generated HMAC-SHA256 key for IP address anonymization.")
+		l.Println("Generated HMAC-SHA256 key for IP address anonymization.")
 	} else if a.method == methodCryptoPAn {
 		a.key = make([]byte, cryptopan.Size)
 		if _, err = rand.Read(a.key); err != nil {
-			log.Fatal(err)
+			l.Fatal(err)
 		}
 		if a.cryptoPAn, err = cryptopan.New(a.key); err != nil {
-			log.Fatal(err)
+			l.Fatal(err)
 		}
-		log.Println("Generated Crypto-PAn key for IP address anonymization.")
+		l.Println("Generated Crypto-PAn key for IP address anonymization.")
 	}
 }
 
@@ -107,6 +107,7 @@ func (a *Anonymizer) loop() {
 // Stop stops the anonymizer.
 func (a *Anonymizer) Stop() {
 	a.done <- true
+	l.Println("Stopping anonymizer.")
 }
 
 // NewAnonymizer returns a new anonymizer using the given anonymization method
