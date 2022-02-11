@@ -49,6 +49,7 @@ func main() {
 	enclave.AddRoute(http.MethodPost, "/address", addressHandler)
 	// The following endpoint must be identical to what our ads server exposes.
 	enclave.AddRoute(http.MethodGet, "/v1/confirmation/token/{walletID}", confTokenHandler)
+	enclave.AddRoute(http.MethodGet, "/v2/confirmation/token/{walletID}", confTokenHandler)
 
 	method := methodCryptoPAn
 	if !useCryptoPAn {
