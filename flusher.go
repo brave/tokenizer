@@ -21,9 +21,42 @@ type empty struct{}
 // addressSet represents a set of string-encoded IP addresses.
 type addressSet map[string]empty
 
-// addresses maps a wallet ID to a set of its anonymized IP addresses, all
+// addrsByWallet maps a wallet ID to a set of its anonymized IP addresses, all
 // represented as strings.
-type addresses map[uuid.UUID]addressSet
+type addrsByWallet map[uuid.UUID]addressSet
+
+// walletsByKeyID maps a key ID to a map of type addrsByWallet.  Key IDs
+// represent data collection epochs: whenever the key ID rotates, a new epoch
+// begins, and our collection of wallet-to-address records begins afresh.
+type walletsByKeyID map[KeyID]addrsByWallet
+
+// MarshalJSON marshals the given key ID-to-wallets map and turns it into the
+// following JSON:
+//
+// {
+//   "keyid": {
+//     "foo": {
+//       "addrs": {
+//         "68a7deb0-615c-4f26-bf87-6b122732d8e9": [
+//           "1.1.1.1",
+//           "2.2.2.2",
+//           ...
+//         ],
+//         ...
+//       }
+//     }
+//   }
+// }
+func (w walletsByKeyID) MarshalJSON() ([]byte, error) {
+	type toMarshal struct {
+		WalletsByKeyID map[KeyID]addrsByWallet `json:"keyid"`
+	}
+	m := &toMarshal{WalletsByKeyID: make(walletsByKeyID)}
+	for keyID, wallets := range w {
+		m.WalletsByKeyID[keyID] = wallets
+	}
+	return json.Marshal(m)
+}
 
 // MarshalJSON marshals the given addresses and turns it into the following
 // JSON:
@@ -38,7 +71,7 @@ type addresses map[uuid.UUID]addressSet
 //     ...
 //   }
 // }
-func (a addresses) MarshalJSON() ([]byte, error) {
+func (a addrsByWallet) MarshalJSON() ([]byte, error) {
 	type toMarshal struct {
 		Addrs map[string][]string `json:"addrs"`
 	}
@@ -60,7 +93,7 @@ type Flusher struct {
 	done          chan bool
 	wg            sync.WaitGroup
 	flushInterval time.Duration
-	addrs         addresses
+	addrs         walletsByKeyID
 	srvURL        string
 }
 
@@ -68,7 +101,7 @@ type Flusher struct {
 func NewFlusher(flushInterval int, srvURL string) *Flusher {
 	return &Flusher{
 		flushInterval: time.Duration(flushInterval) * time.Second,
-		addrs:         make(addresses),
+		addrs:         make(walletsByKeyID),
 		done:          make(chan bool),
 		srvURL:        srvURL,
 	}
@@ -118,7 +151,7 @@ func (f *Flusher) sendBatch() error {
 	}
 
 	l.Printf("Flushed %d addresses to Kafka bridge.", len(f.addrs))
-	f.addrs = make(addresses)
+	f.addrs = make(walletsByKeyID)
 
 	return nil
 }
@@ -135,13 +168,26 @@ func (f *Flusher) Submit(req *clientRequest) {
 	f.Lock()
 	defer f.Unlock()
 
-	_, exists := f.addrs[req.Wallet]
+	wallets, exists := f.addrs[req.KeyID]
 	if !exists {
-		addrsSet := make(addressSet)
-		addrsSet[string(req.AnonAddr)] = empty{}
-		f.addrs[req.Wallet] = addrsSet
+		// We're starting a new key ID epoch.
+		wallets := make(addrsByWallet)
+		wallets[req.Wallet] = addressSet{
+			string(req.AnonAddr): empty{},
+		}
+		f.addrs[req.KeyID] = wallets
 	} else {
-		f.addrs[req.Wallet][string(req.AnonAddr)] = empty{}
+		addrSet, exists := wallets[req.Wallet]
+		if !exists {
+			// We have no addresses for the given wallet yet.  Create a new
+			// address set.
+			wallets[req.Wallet] = addressSet{
+				string(req.AnonAddr): empty{},
+			}
+		} else {
+			// Add address to the given wallet's address set.
+			addrSet[string(req.AnonAddr)] = empty{}
+		}
 	}
 	l.Print(f.addrs)
 }

@@ -13,46 +13,42 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-func TestSerialization(t *testing.T) {
+func TestSerialization2(t *testing.T) {
 	walletID := uuid.NewV4()
+	keyID := KeyID("foo")
 	ipAddr := "1.1.1.1"
-	addrs := addresses{
-		walletID: addressSet{
-			ipAddr: empty{},
+	batch := walletsByKeyID{
+		keyID: addrsByWallet{
+			walletID: addressSet{
+				ipAddr: empty{},
+			},
 		},
 	}
 
-	serialized, err := json.Marshal(addrs)
+	serialized, err := json.Marshal(batch)
 	if err != nil {
 		t.Fatalf("failed to marshal struct: %s", err)
-	}
-	expected := fmt.Sprintf("{\"addrs\":{\"%s\":[\"%s\"]}}", walletID.String(), ipAddr)
-	if string(serialized) != expected {
-		t.Fatalf("expected %q but got %q", expected, serialized)
 	}
 
-	// Serialize an empty map.
-	addrs = addresses{}
-	serialized, err = json.Marshal(addrs)
-	if err != nil {
-		t.Fatalf("failed to marshal struct: %s", err)
-	}
-	expected = "{\"addrs\":{}}"
+	expected := fmt.Sprintf("{\"keyid\":{\"%s\":{\"addrs\":{\"%s\":[\"%s\"]}}}}",
+		keyID, walletID.String(), ipAddr)
 	if string(serialized) != expected {
 		t.Fatalf("expected %q but got %q", expected, serialized)
 	}
 }
 
 func TestFlusher(t *testing.T) {
-
 	var wg sync.WaitGroup
 	wg.Add(1)
 	walletID := uuid.NewV4()
 	ipAddr1 := "1.1.1.1"
+	keyID := KeyID("foo")
 
-	expectedPayload := addresses{
-		walletID: addressSet{
-			ipAddr1: empty{},
+	expectedPayload := walletsByKeyID{
+		keyID: addrsByWallet{
+			walletID: addressSet{
+				ipAddr1: empty{},
+			},
 		},
 	}
 
@@ -83,8 +79,13 @@ func TestFlusher(t *testing.T) {
 	f := NewFlusher(1, srv.URL)
 	defer f.Stop()
 	f.Start()
-	f.Submit(&clientRequest{AnonAddr: []byte(ipAddr1), Wallet: walletID})
+	req := &clientRequest{
+		AnonAddr: []byte(ipAddr1),
+		Wallet:   walletID,
+		KeyID:    keyID,
+	}
+	f.Submit(req)
 	// Submit a duplicate IP address, which should be discarded.
-	f.Submit(&clientRequest{AnonAddr: []byte(ipAddr1), Wallet: walletID})
+	f.Submit(req)
 	wg.Wait()
 }
