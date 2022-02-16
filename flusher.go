@@ -86,6 +86,18 @@ func (a addrsByWallet) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m)
 }
 
+// String implements the Stringer interface for addrsByWallet.
+func (a addrsByWallet) String() string {
+	allAddrSet := make(map[string]empty)
+	for _, addrSet := range a {
+		for a := range addrSet {
+			allAddrSet[a] = empty{}
+		}
+
+	}
+	return fmt.Sprintf("Holding %d wallet addresses containing a total of %d unique IP addresses.", len(a), len(allAddrSet))
+}
+
 // Flusher periodically flushes anonymized IP addresses to our HTTP-to-Kafka
 // bridge.
 type Flusher struct {
