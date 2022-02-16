@@ -86,6 +86,15 @@ func (a addrsByWallet) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m)
 }
 
+// String implements the Stringer interface for walletsByKeyID.
+func (w walletsByKeyID) String() string {
+	var s string
+	for keyID, wallets := range w {
+		s += fmt.Sprintf("Key ID %s: %s\n", keyID, wallets)
+	}
+	return s
+}
+
 // String implements the Stringer interface for addrsByWallet.
 func (a addrsByWallet) String() string {
 	allAddrSet := make(map[string]empty)
