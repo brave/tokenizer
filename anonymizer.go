@@ -8,6 +8,7 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -53,17 +54,17 @@ func (a *Anonymizer) Anonymize(addr net.IP) ([]byte, KeyID) {
 
 	sum := sha256.Sum256(a.key)
 	l.Printf("Anonymized %s to %x using key ID %x.", addr, anonAddr, sum)
-	return anonAddr, KeyID(sum[:])
+	return anonAddr, KeyID(fmt.Sprintf("%x", sum[:]))
 }
 
 // GetKeyID returns the ID of the currently used anonymization key.  The key ID
-// is the SHA-256 over the key.
+// is the hex-encoded SHA-256 over the key.
 func (a *Anonymizer) GetKeyID() KeyID {
 	a.Lock()
 	defer a.Unlock()
 
 	sum := sha256.Sum256(a.key)
-	return KeyID(sum[:])
+	return KeyID(fmt.Sprintf("%x", sum[:]))
 }
 
 // initKeys (re-)initializes the anonymization key.
