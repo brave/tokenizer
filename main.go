@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	_ "github.com/brave-experiments/nitro-enclave-utils/randseed"
