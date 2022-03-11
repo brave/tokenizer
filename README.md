@@ -1,8 +1,10 @@
 IP Address Anonymizer (ia2)
 ===========================
 
-This service is meant to be run in an AWS Nitro enclave and exposes an HTTP API
-with two endpoints:
+ia2 takes as input IP addresses, anonymizes them, and forwards them to a Kafka
+back end.  ia2 is meant to be run in an
+[AWS Nitro Enclave](https://aws.amazon.com/ec2/nitro/nitro-enclaves/)
+and exposes an HTTP API with two endpoints:
 
 1. One endpoint takes as input IP addresses.  The service then anonymizes those
    IP addresses and sends them to a Kafka broker.

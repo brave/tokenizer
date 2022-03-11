@@ -26,6 +26,18 @@ eif: image
 	@echo "Showing enclave logs."
 	nitro-cli console --enclave-id $$(nitro-cli describe-enclaves | jq -r '.[0].EnclaveID')
 
+docker:
+	docker run \
+		-v $(PWD):/workspace \
+		--network=host \
+		gcr.io/kaniko-project/executor:v1.7.0 \
+		--reproducible \
+		--dockerfile /workspace/Dockerfile \
+		--no-push \
+		--tarPath /workspace/ia2-repro.tar \
+		--destination ia2 \
+		--context dir:///workspace/ && cat ia2-repro.tar | docker load
+
 $(binary): $(godeps)
 	go build -o $(binary).
 
