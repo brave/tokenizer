@@ -1,6 +1,9 @@
 .PHONY: all test lint eif ia2 clean
 
-all: test lint ia2
+binary = ia2
+godeps = *.go go.mod go.sum
+
+all: test lint $(binary)
 
 test:
 	go test -cover ./...
@@ -23,8 +26,8 @@ eif: image
 	@echo "Showing enclave logs."
 	nitro-cli console --enclave-id $$(nitro-cli describe-enclaves | jq -r '.[0].EnclaveID')
 
-ia2:
-	go build -o ia2 .
+$(binary): $(godeps)
+	go build -o $(binary).
 
 clean:
-	rm ia2
+	rm $(binary)
