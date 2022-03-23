@@ -3,16 +3,13 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"time"
 
 	_ "github.com/brave-experiments/nitro-enclave-utils/randseed"
-	"github.com/mdlayher/vsock"
 
 	nitro "github.com/brave-experiments/nitro-enclave-utils"
-	"github.com/brave-experiments/viproxy"
 )
 
 const (
@@ -34,13 +31,6 @@ const (
 	// anonymize IP addresses.  Once the key expires, we rotate it by
 	// generating a new one.
 	KeyExpiration = time.Hour * 24 * 30 * 6
-	// parentCID determines the CID (analogous to an IP address) of the parent
-	// EC2 instance.  According to the AWS docs, it is always 3:
-	// https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave-concepts.html
-	parentCID = 3
-	// parentProxyPort determines the TCP port of the SOCKS proxy that's
-	// running on the parent EC2 instance.
-	parentProxyPort = 1080
 	// localProxy determines the IP address and port of the enclave-internal
 	// proxy that translates between AF_INET and AF_VSOCK.
 	localProxy = "127.0.0.1:1080"
@@ -72,22 +62,6 @@ func main() {
 		method = methodHMAC
 	}
 	anonymizer = NewAnonymizer(method, KeyExpiration)
-
-	// Start TCP proxy that translates AF_INET to AF_VSOCK, so that HTTP
-	// requests that we make inside of ia2 can reach the SOCKS proxy that's
-	// running on the parent EC2 instance.
-	inAddr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:1080")
-	if err != nil {
-		l.Fatalf("Failed to resolve TCP address: %s", err)
-	}
-	tuple := &viproxy.Tuple{
-		InAddr:  inAddr,
-		OutAddr: &vsock.Addr{ContextID: uint32(parentCID), Port: uint32(parentProxyPort)},
-	}
-	proxy := viproxy.NewVIProxy([]*viproxy.Tuple{tuple})
-	if err := proxy.Start(); err != nil {
-		log.Fatalf("Failed to start VIProxy: %s", err)
-	}
 
 	l.Printf("Initializing new flusher with interval %ds.", flushInterval)
 	flusher = NewFlusher(flushInterval, kafkaBridgeURL)
