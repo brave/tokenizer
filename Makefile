@@ -39,7 +39,7 @@ docker:
 		--context dir:///workspace/ && cat ia2-repro.tar | docker load
 
 $(binary): $(godeps)
-	go build -o $(binary).
+	go build -o $(binary)
 
 clean:
 	rm $(binary)
