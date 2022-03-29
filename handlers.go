@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 
+	msg "github.com/brave-experiments/ia2/message"
 	"github.com/go-chi/chi/v5"
 	uuid "github.com/satori/go.uuid"
 )
@@ -33,7 +34,7 @@ var (
 type clientRequest struct {
 	Addr     net.IP
 	AnonAddr []byte
-	KeyID    KeyID
+	KeyID    msg.KeyID
 	Wallet   uuid.UUID
 }
 

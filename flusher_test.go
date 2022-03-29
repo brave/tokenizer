@@ -10,44 +10,21 @@ import (
 	"sync"
 	"testing"
 
+	msg "github.com/brave-experiments/ia2/message"
 	uuid "github.com/satori/go.uuid"
 )
-
-func TestSerialization2(t *testing.T) {
-	walletID := uuid.NewV4()
-	keyID := KeyID("foo")
-	ipAddr := "1.1.1.1"
-	batch := walletsByKeyID{
-		keyID: addrsByWallet{
-			walletID: addressSet{
-				ipAddr: empty{},
-			},
-		},
-	}
-
-	serialized, err := json.Marshal(batch)
-	if err != nil {
-		t.Fatalf("failed to marshal struct: %s", err)
-	}
-
-	expected := fmt.Sprintf("{\"keyid\":{\"%s\":{\"addrs\":{\"%s\":[\"%s\"]}}}}",
-		keyID, walletID.String(), ipAddr)
-	if string(serialized) != expected {
-		t.Fatalf("expected %q but got %q", expected, serialized)
-	}
-}
 
 func TestFlusher(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	walletID := uuid.NewV4()
-	ipAddr1 := "1.1.1.1"
-	keyID := KeyID("foo")
+	anonAddr := "0123456789"
+	keyID := msg.KeyID("foo")
 
-	expectedPayload := walletsByKeyID{
-		keyID: addrsByWallet{
-			walletID: addressSet{
-				ipAddr1: empty{},
+	expectedPayload := msg.WalletsByKeyID{
+		keyID: msg.AddrsByWallet{
+			walletID: msg.AddressSet{
+				fmt.Sprintf("%x", anonAddr): msg.Empty{},
 			},
 		},
 	}
@@ -71,7 +48,7 @@ func TestFlusher(t *testing.T) {
 		}
 
 		if !bytes.Equal(receivedJSON, expectedJSON) {
-			t.Fatalf("received unexpected JSON: %s", receivedJSON)
+			t.Fatalf("received unexpected JSON:\n%s\n%s", receivedJSON, expectedJSON)
 		}
 	}))
 	defer srv.Close()
@@ -80,7 +57,7 @@ func TestFlusher(t *testing.T) {
 	defer f.Stop()
 	f.Start()
 	req := &clientRequest{
-		AnonAddr: []byte(ipAddr1),
+		AnonAddr: []byte(anonAddr),
 		Wallet:   walletID,
 		KeyID:    keyID,
 	}

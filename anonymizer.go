@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Yawning/cryptopan"
+	msg "github.com/brave-experiments/ia2/message"
 )
 
 const (
@@ -21,9 +22,6 @@ const (
 	methodCryptoPAn = iota
 	methodHMAC
 )
-
-// KeyID represents the ID of the anonymizer's current key.
-type KeyID string
 
 // Anonymizer implements an object that anonymizes IP addresses and
 // periodically rotates the key that we use to anonymize addresses.
@@ -39,7 +37,7 @@ type Anonymizer struct {
 // Anonymize takes as input an IP address and returns a byte slice that
 // contains the anonymized IP address and the key ID that was used to anonymize
 // the IP address.
-func (a *Anonymizer) Anonymize(addr net.IP) ([]byte, KeyID) {
+func (a *Anonymizer) Anonymize(addr net.IP) ([]byte, msg.KeyID) {
 	a.Lock()
 	defer a.Unlock()
 
@@ -54,17 +52,17 @@ func (a *Anonymizer) Anonymize(addr net.IP) ([]byte, KeyID) {
 
 	sum := sha256.Sum256(a.key)
 	l.Printf("Anonymized %s to %x using key ID %x.", addr, anonAddr, sum)
-	return anonAddr, KeyID(fmt.Sprintf("%x", sum[:]))
+	return anonAddr, msg.KeyID(fmt.Sprintf("%x", sum[:]))
 }
 
 // GetKeyID returns the ID of the currently used anonymization key.  The key ID
 // is the hex-encoded SHA-256 over the key.
-func (a *Anonymizer) GetKeyID() KeyID {
+func (a *Anonymizer) GetKeyID() msg.KeyID {
 	a.Lock()
 	defer a.Unlock()
 
 	sum := sha256.Sum256(a.key)
-	return KeyID(fmt.Sprintf("%x", sum[:]))
+	return msg.KeyID(fmt.Sprintf("%x", sum[:]))
 }
 
 // initKeys (re-)initializes the anonymization key.

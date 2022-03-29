@@ -12,100 +12,8 @@ import (
 	"sync"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
+	msg "github.com/brave-experiments/ia2/message"
 )
-
-// empty represents an empty map value.
-type empty struct{}
-
-// addressSet represents a set of string-encoded IP addresses.
-type addressSet map[string]empty
-
-// addrsByWallet maps a wallet ID to a set of its anonymized IP addresses, all
-// represented as strings.
-type addrsByWallet map[uuid.UUID]addressSet
-
-// walletsByKeyID maps a key ID to a map of type addrsByWallet.  Key IDs
-// represent data collection epochs: whenever the key ID rotates, a new epoch
-// begins, and our collection of wallet-to-address records begins afresh.
-type walletsByKeyID map[KeyID]addrsByWallet
-
-// MarshalJSON marshals the given key ID-to-wallets map and turns it into the
-// following JSON:
-//
-// {
-//   "keyid": {
-//     "foo": {
-//       "addrs": {
-//         "68a7deb0-615c-4f26-bf87-6b122732d8e9": [
-//           "1.1.1.1",
-//           "2.2.2.2",
-//           ...
-//         ],
-//         ...
-//       }
-//     }
-//   }
-// }
-func (w walletsByKeyID) MarshalJSON() ([]byte, error) {
-	type toMarshal struct {
-		WalletsByKeyID map[KeyID]addrsByWallet `json:"keyid"`
-	}
-	m := &toMarshal{WalletsByKeyID: make(walletsByKeyID)}
-	for keyID, wallets := range w {
-		m.WalletsByKeyID[keyID] = wallets
-	}
-	return json.Marshal(m)
-}
-
-// MarshalJSON marshals the given addresses and turns it into the following
-// JSON:
-//
-// {
-//   "addrs": {
-//     "68a7deb0-615c-4f26-bf87-6b122732d8e9": [
-//       "1.1.1.1",
-//       "2.2.2.2",
-//       ...
-//     ],
-//     ...
-//   }
-// }
-func (a addrsByWallet) MarshalJSON() ([]byte, error) {
-	type toMarshal struct {
-		Addrs map[string][]string `json:"addrs"`
-	}
-	m := &toMarshal{Addrs: make(map[string][]string)}
-	for wallet, addrSet := range a {
-		addrSlice := []string{}
-		for addr := range addrSet {
-			addrSlice = append(addrSlice, addr)
-		}
-		m.Addrs[wallet.String()] = addrSlice
-	}
-	return json.Marshal(m)
-}
-
-// String implements the Stringer interface for walletsByKeyID.
-func (w walletsByKeyID) String() string {
-	var s string
-	for keyID, wallets := range w {
-		s += fmt.Sprintf("Key ID %s: %s\n", keyID, wallets)
-	}
-	return s
-}
-
-// String implements the Stringer interface for addrsByWallet.
-func (a addrsByWallet) String() string {
-	allAddrSet := make(map[string]empty)
-	for _, addrSet := range a {
-		for a := range addrSet {
-			allAddrSet[a] = empty{}
-		}
-
-	}
-	return fmt.Sprintf("Holding %d wallet addresses containing a total of %d unique IP addresses.", len(a), len(allAddrSet))
-}
 
 // Flusher periodically flushes anonymized IP addresses to our HTTP-to-Kafka
 // bridge.
@@ -114,7 +22,7 @@ type Flusher struct {
 	done          chan bool
 	wg            sync.WaitGroup
 	flushInterval time.Duration
-	addrs         walletsByKeyID
+	addrs         msg.WalletsByKeyID
 	srvURL        string
 }
 
@@ -122,7 +30,7 @@ type Flusher struct {
 func NewFlusher(flushInterval int, srvURL string) *Flusher {
 	return &Flusher{
 		flushInterval: time.Duration(flushInterval) * time.Second,
-		addrs:         make(walletsByKeyID),
+		addrs:         make(msg.WalletsByKeyID),
 		done:          make(chan bool),
 		srvURL:        srvURL,
 	}
@@ -172,7 +80,7 @@ func (f *Flusher) sendBatch() error {
 	}
 
 	l.Printf("Flushed %d addresses to Kafka bridge.", len(f.addrs))
-	f.addrs = make(walletsByKeyID)
+	f.addrs = make(msg.WalletsByKeyID)
 
 	return nil
 }
@@ -192,9 +100,9 @@ func (f *Flusher) Submit(req *clientRequest) {
 	wallets, exists := f.addrs[req.KeyID]
 	if !exists {
 		// We're starting a new key ID epoch.
-		wallets := make(addrsByWallet)
-		wallets[req.Wallet] = addressSet{
-			string(req.AnonAddr): empty{},
+		wallets := make(msg.AddrsByWallet)
+		wallets[req.Wallet] = msg.AddressSet{
+			string(req.AnonAddr): msg.Empty{},
 		}
 		f.addrs[req.KeyID] = wallets
 	} else {
@@ -202,12 +110,12 @@ func (f *Flusher) Submit(req *clientRequest) {
 		if !exists {
 			// We have no addresses for the given wallet yet.  Create a new
 			// address set.
-			wallets[req.Wallet] = addressSet{
-				string(req.AnonAddr): empty{},
+			wallets[req.Wallet] = msg.AddressSet{
+				string(req.AnonAddr): msg.Empty{},
 			}
 		} else {
 			// Add address to the given wallet's address set.
-			addrSet[string(req.AnonAddr)] = empty{}
+			addrSet[string(req.AnonAddr)] = msg.Empty{}
 		}
 	}
 	l.Print(f.addrs)
