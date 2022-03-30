@@ -6,13 +6,16 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
 	"time"
 
+	kutil "github.com/brave-experiments/ia2/kafkautils"
 	msg "github.com/brave-experiments/ia2/message"
+	"github.com/segmentio/kafka-go"
 )
 
 // Flusher periodically flushes anonymized IP addresses to our HTTP-to-Kafka
@@ -23,17 +26,36 @@ type Flusher struct {
 	wg            sync.WaitGroup
 	flushInterval time.Duration
 	addrs         msg.WalletsByKeyID
+	writer        *kafka.Writer
 	srvURL        string
 }
 
 // NewFlusher creates and returns a new Flusher.
 func NewFlusher(flushInterval int, srvURL string) *Flusher {
-	return &Flusher{
+	f := &Flusher{
 		flushInterval: time.Duration(flushInterval) * time.Second,
 		addrs:         make(msg.WalletsByKeyID),
 		done:          make(chan bool),
 		srvURL:        srvURL,
 	}
+
+	// If we're running outside an enclave, we can talk to Kafka directly,
+	// without having to rely on our HTTP-to-Kafka bridge.  In that case,
+	// instantiate a Kafka writer and don't use a bridge.
+	kafkaWriter, err := kutil.NewKafkaWriter(kutil.DefaultKafkaCert, kutil.DefaultKafkaKey)
+	if err == nil {
+		l.Println("Successfully instantiated Kafka writer; assuming we're outside an enclave.")
+		f.writer = kafkaWriter
+	} else {
+		l.Printf("Not instantiating Kafka writer because: %s", err)
+	}
+	return f
+}
+
+// useKafkaDirectly returns true if we're supposed to talk to Kafka directly,
+// instead of using our HTTP-to-Kafka bridge.
+func (f *Flusher) useKafkaDirectly() bool {
+	return f.writer != nil
 }
 
 // Start starts the Flusher.
@@ -56,7 +78,8 @@ func (f *Flusher) Start() {
 	}()
 }
 
-// sendBatch sends a batch of anonymized IP addresses to our Kafka bridge.
+// sendBatch sends a batch of anonymized IP addresses to Kafka; either directly
+// (if we're outside an enclave), or via our bridge (if we're in an enclave).
 func (f *Flusher) sendBatch() error {
 	f.Lock()
 	defer f.Unlock()
@@ -65,6 +88,13 @@ func (f *Flusher) sendBatch() error {
 		return nil
 	}
 
+	if f.useKafkaDirectly() {
+		return f.sendBatchViaKafka()
+	}
+	return f.sendBatchViaHTTP()
+}
+
+func (f *Flusher) sendBatchViaHTTP() error {
 	jsonBytes, err := json.Marshal(f.addrs)
 	if err != nil {
 		return fmt.Errorf("failed to marshal addresses: %s", err)
@@ -83,6 +113,20 @@ func (f *Flusher) sendBatch() error {
 	f.addrs = make(msg.WalletsByKeyID)
 
 	return nil
+}
+
+func (f *Flusher) sendBatchViaKafka() error {
+	jsonStr, err := json.Marshal(f.addrs)
+	if err != nil {
+		return err
+	}
+
+	return f.writer.WriteMessages(context.Background(),
+		kafka.Message{
+			Key:   nil,
+			Value: []byte(jsonStr),
+		},
+	)
 }
 
 // Stop stops the flusher.
