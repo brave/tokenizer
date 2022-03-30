@@ -26,7 +26,7 @@ const (
 	// to AF_VSOCK.  In theory, we could talk directly to the AF_VSOCK address
 	// of our Kafka bridge and get rid of socat but that makes testing more
 	// annoying.  It easier to deal with tests via AF_INET.
-	kafkaBridgeURL = "http://127.0.0.1:8081"
+	kafkaBridgeURL = "http://127.0.0.1:8081/addresses"
 	// KeyExpiration determines the expiration time of the key that we use to
 	// anonymize IP addresses.  Once the key expires, we rotate it by
 	// generating a new one.
