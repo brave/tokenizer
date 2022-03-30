@@ -102,7 +102,7 @@ func (f *Flusher) Submit(req *clientRequest) {
 		// We're starting a new key ID epoch.
 		wallets := make(msg.AddrsByWallet)
 		wallets[req.Wallet] = msg.AddressSet{
-			string(req.AnonAddr): msg.Empty{},
+			fmt.Sprintf("%x", req.AnonAddr): msg.Empty{},
 		}
 		f.addrs[req.KeyID] = wallets
 	} else {
@@ -111,11 +111,11 @@ func (f *Flusher) Submit(req *clientRequest) {
 			// We have no addresses for the given wallet yet.  Create a new
 			// address set.
 			wallets[req.Wallet] = msg.AddressSet{
-				string(req.AnonAddr): msg.Empty{},
+				fmt.Sprintf("%x", req.AnonAddr): msg.Empty{},
 			}
 		} else {
 			// Add address to the given wallet's address set.
-			addrSet[string(req.AnonAddr)] = msg.Empty{}
+			addrSet[fmt.Sprintf("%x", req.AnonAddr)] = msg.Empty{}
 		}
 	}
 	l.Print(f.addrs)
