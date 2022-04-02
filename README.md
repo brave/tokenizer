@@ -1,24 +1,39 @@
 IP Address Anonymizer (ia2)
 ===========================
 
-ia2 takes as input IP addresses, anonymizes them, and forwards them to a Kafka
-back end.  ia2 is meant to be run in an
-[AWS Nitro Enclave](https://aws.amazon.com/ec2/nitro/nitro-enclaves/)
-and exposes an HTTP API with two endpoints:
+ia2 exposes an HTTP API to take as input IP addresses.  Those addresses are then
+anonymized and forwarded to a Kafka cluster.  ia2 is meant to (but doesn't have
+to) run in an [AWS Nitro
+Enclave](https://aws.amazon.com/ec2/nitro/nitro-enclaves/) and exposes the
+following two HTTP API endpoints:
 
-1. One endpoint takes as input IP addresses.  The service then anonymizes those
-   IP addresses and sends them to a Kafka broker.
+1. `/v1/confirmation/token/WALLET_ID`  
+  This endpoint takes as input confirmation token requests as received by
+  Fastly.  The endpoint extracts the client IP address, anonymizes it, and
+  forwards it to our Kafka cluster.
 
-2. The other endpoint lets clients request an attestation document (issued by
-   the Nitro hypervisor) that lets clients attest the enclave's authenticity.
+2. `/attestation`  
+  This endpoint handles requests for remote attestation.  Clients provide a
+  nonce, which is then forwarded to the Nitro hypervisor, which returns an
+  attestation document, which allows clients to verify the authenticity of the
+  secure enclave.
 
 Developer setup
 ---------------
 
-Simply run `make` to test and compile the service.  You can then start ia2 by
-running `./ia2`.  Note that the code checks if it's being run inside an enclave.
-If it's not in an enclave, ia2 skips enclave-specific setup, so it can be run
-locally.
+To test, lint, and compile ia2, simply run:
+
+    make
+
+You can then start ia2 by executing the `ia2` binary.  Note that you don't need
+to run ia2 inside a Nitro Enclave: the code (in particular the
+[nitro-enclave-utils](https://github.com/brave-experiments/nitro-enclave-utils)
+package that ia2 depends on) checks if it's inside an enclave and if not, it
+skips enclave-specific setup to facilitate local development.
+
+To create a Docker image of ia2, run:
+
+    make docker
 
 Configuration
 -------------
@@ -26,3 +41,9 @@ Configuration
 ia2 is not meant to be run interactively, and is therefore configured via
 constants in [main.go](main.go).  All of those constants are documented, so
 please refer to the source code to learn more about configuration options.
+
+Architecture
+------------
+
+To learn more about ia2's architecture, take a look at the [architectural
+documentation](doc/architecture.md)
