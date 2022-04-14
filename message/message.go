@@ -17,8 +17,10 @@ type AddressSet map[string]Empty
 // represented as strings.
 type AddrsByWallet map[uuid.UUID]AddressSet
 
-// KeyID represents the ID of the anonymizer's current key.
-type KeyID string
+// KeyID is a UUID that's derived from the anonymizer's current key.
+type KeyID struct {
+	uuid.UUID
+}
 
 // WalletsByKeyID maps a key ID to a map of type addrsByWallet.  Key IDs
 // represent data collection epochs: whenever the key ID rotates, a new epoch
@@ -30,7 +32,7 @@ type WalletsByKeyID map[KeyID]AddrsByWallet
 //
 // {
 //   "keyid": {
-//     "0edfd414c0ea0c7e8ff9": {
+//     "024752c9-7090-4123-939e-67b08042d7d7": {
 //       "addrs": {
 //         "68a7deb0-615c-4f26-bf87-6b122732d8e9": [
 //           "1.1.1.1",

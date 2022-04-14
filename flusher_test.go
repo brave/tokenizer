@@ -19,7 +19,7 @@ func TestFlusher(t *testing.T) {
 	wg.Add(1)
 	walletID := uuid.NewV4()
 	anonAddr := "0123456789"
-	keyID := msg.KeyID("foo")
+	keyID := msg.KeyID{UUID: uuid.NewV4()}
 
 	expectedPayload := msg.WalletsByKeyID{
 		keyID: msg.AddrsByWallet{

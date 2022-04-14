@@ -8,6 +8,7 @@ import (
 	"time"
 
 	_ "github.com/brave-experiments/nitro-enclave-utils/randseed"
+	uuid "github.com/satori/go.uuid"
 
 	nitro "github.com/brave-experiments/nitro-enclave-utils"
 )
@@ -40,6 +41,9 @@ var (
 	flusher    *Flusher
 	anonymizer *Anonymizer
 	l          = log.New(os.Stderr, "ia2: ", log.Ldate|log.Ltime|log.LUTC|log.Lshortfile)
+	// Pre-defined UUID namespaces aren't a great fit for our use case, so we
+	// use our own namespace, based on a randomly-generated V4 UUID.
+	uuidNamespace = uuid.Must(uuid.FromString("c298cccd-3c75-4e72-a73b-47811ac13f4f"))
 )
 
 func main() {

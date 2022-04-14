@@ -10,7 +10,7 @@ import (
 
 func TestSerialization2(t *testing.T) {
 	walletID := uuid.NewV4()
-	keyID := KeyID("foo")
+	keyID := KeyID{UUID: uuid.NewV4()}
 	ipAddr := "1.1.1.1"
 	batch := WalletsByKeyID{
 		keyID: AddrsByWallet{

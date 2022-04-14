@@ -15,6 +15,7 @@ import (
 
 	"github.com/Yawning/cryptopan"
 	msg "github.com/brave-experiments/ia2/message"
+	uuid "github.com/satori/go.uuid"
 )
 
 const (
@@ -39,8 +40,6 @@ type Anonymizer struct {
 // the IP address.
 func (a *Anonymizer) Anonymize(addr net.IP) ([]byte, msg.KeyID) {
 	a.Lock()
-	defer a.Unlock()
-
 	var anonAddr []byte
 	if a.method == methodHMAC {
 		h := hmac.New(sha256.New, a.key)
@@ -49,10 +48,9 @@ func (a *Anonymizer) Anonymize(addr net.IP) ([]byte, msg.KeyID) {
 	} else if a.method == methodCryptoPAn {
 		anonAddr = a.cryptoPAn.Anonymize(addr)
 	}
+	a.Unlock()
 
-	sum := sha256.Sum256(a.key)
-	l.Printf("Anonymized %s to %x using key ID %x.", addr, anonAddr, sum)
-	return anonAddr, msg.KeyID(fmt.Sprintf("%x", sum[:]))
+	return anonAddr, a.GetKeyID()
 }
 
 // GetKeyID returns the ID of the currently used anonymization key.  The key ID
@@ -61,8 +59,11 @@ func (a *Anonymizer) GetKeyID() msg.KeyID {
 	a.Lock()
 	defer a.Unlock()
 
+	// A v5 UUID is supposed to hash the given name (in our case: the key)
+	// using SHA-1 but let's be extra careful and hash the key using SHA-256
+	// before handing it over to the uuid package.
 	sum := sha256.Sum256(a.key)
-	return msg.KeyID(fmt.Sprintf("%x", sum[:]))
+	return msg.KeyID{UUID: uuid.NewV5(uuidNamespace, fmt.Sprintf("%x", sum[:]))}
 }
 
 // initKeys (re-)initializes the anonymization key.
