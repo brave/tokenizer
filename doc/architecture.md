@@ -13,18 +13,21 @@ HTTP endpoints
 
 ia2 exposes two HTTPS endpoints:
 
-* POST /submit  
-  Clients talk to this endpoint to submit a new IP address for anonymization.
-  The form field is of the format `addr=ADDRESS` where `ADDRESS` represents an
-  IPv4 (e.g., "192.0.2.1") or IPv6 (e.g., "2001:db8::68") address.
+* `GET /v2/confirmation/token/WALLET_ID`  
+  Fastly mirrors requests for confirmation token refills to this endpoint.
+  The code extracts client IP addresses from the HTTP header `Fastly-Client-IP`.
 
-* POST /attest  
+* `POST /attest`  
   Clients talk to this endpoint to request an attestation document from the
   enclave.  The form field is of the format `nonce=NONCE` where `NONCE`
   represents a random hex string consisting of 40 digits, e.g.
   `4f61495297d282005d770593f6c5e28c7143561d`.  The purpose of the nonce is to
   allow clients to prove to themselves that the enclave is "alive" and not
   returning a pre-computed attestation document.
+
+Technically, there is a third endpoint, `GET /address`, but it's currently not
+in use.  We may be using this endpoint in the future, to give clients the
+ability to submit their own addresses.
 
 Build process
 -------------
@@ -35,14 +38,13 @@ interface](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave-cli.ht
 we can take a given Docker image and turn it into an EIF.  Crucially, we must
 build ia2 reproducibly, meaning that two subsequent and independent builds must
 result in a byte-by-byte identical image.  Standard Docker cannot guarantee
-that.  We use Google's [ko](https://github.com/google/ko) to accomplish that.
-ko takes as input a Go application and can reproducibly turn it into a Docker
-image, i.e. if Alice builds ia2, she ends up with the exact same image as Bob.
-Importantly, ko can only build a single Go applications, which is why ia2 is
-entirely self-contained.
+that.  We use Google's [kaniko](https://github.com/GoogleContainerTools/kaniko)
+to accomplish that.  kaniko takes as input a Dockerfile and can reproducibly
+turn it into a Docker image, i.e. if Alice builds ia2, she ends up with the
+exact same image as Bob.
 
-Running `make eif` builds an EIF, terminates any already-running enclaves (if
-any), and finally starts the freshly-built EIF.
+Running `make eif` builds a Docker image, turns it into an EIF, terminates any
+already-running enclaves (if any), and finally starts the freshly-built EIF.
 
 Bootstrapping
 -------------
@@ -65,13 +67,13 @@ Sending and receiving network packets
 -------------------------------------
 
 By design, enclaves have limited networking ability.  All network communication
-must be routed over a vsock interface.  Note that a vsock interface uses a
+must be routed over a VSOCK interface.  Note that a VSOCK interface uses a
 different address family (AF\_VSOCK) than standard IP Networking (AF\_INET) and
-not all applications support vsock.
+not all applications support VSOCK.
 
-To receive incoming connections, we use Go's [vsock
-package](https://github.com/mdlayher/vsock) to create a custom listener that
-listens for new incoming connections over our vsock interface.  We then pass
+To receive incoming connections, we use a [VSOCK
+Go package](https://github.com/mdlayher/vsock) to create a custom listener that
+listens for new incoming connections over our VSOCK interface.  We then pass
 this listener to Go's standard HTTP server, and the rest works as expected.
 The parent EC2 instance serves as a TCP proxy that forwards incoming connections
 to the enclave.
@@ -80,15 +82,14 @@ Outgoing connections are a little bit more complicated.  The enclave can only
 talk to the parent EC2 instance.  To get around this limitation, we set up a
 SOCKS proxy on the parent EC2 instance and teach the enclave to use it.  We use
 SOCKS because Go's HTTP code natively supports SOCKS (and other protocols) by
-setting the `HTTP_PROXY` and `HTTPS_PROXY` environment variables to
+setting the `HTTP_PROXY` and `HTTPS_PROXY` environment variables to, say,
 "socks5://127.0.0.1:1080".  However, when setting those variables, Go will
 attempt to establish an AF\_INET-based rather than an AF\_VSOCK-based socket to
 the SOCKS proxy.  We therefore need to add a proxy that translates between
-AF\_INET and AF\_VSOCK.  That's the purpose of the vproxy.go file.  The code
-runs in a separate goroutine and listens on TCP port 127.0.0.1:1080.  Once our
-service establishes a new connection with this port, we connect to the SOCKS
-proxy running on the parent EC2 instance and simply forward packets back and
-forth.
+AF\_INET and AF\_VSOCK.  The
+[nitro-enclave-utils](https://github.com/brave-experiments/nitro-enclave-utils)
+package takes care of that, and forwards SOCKS connections to the SOCKS proxy
+running on the parent EC2 instance.
 
 The diagram below illustrates how network packets are sent and received.
 

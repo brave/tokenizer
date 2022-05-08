@@ -1,13 +1,13 @@
 IP Address Anonymizer (ia2)
 ===========================
 
-ia2 exposes an HTTP API to take as input IP addresses.  Those addresses are then
-anonymized and forwarded to a Kafka cluster.  ia2 is meant to (but doesn't have
-to) run in an [AWS Nitro
+ia2 anonymizes IP addresses.  The service takes as input IP addresses via an
+HTTP API.  Those addresses are then anonymized and forwarded to a Kafka cluster.
+ia2 is meant to (but doesn't have to) run in an [AWS Nitro
 Enclave](https://aws.amazon.com/ec2/nitro/nitro-enclaves/) and exposes the
 following two HTTP API endpoints:
 
-1. `/v1/confirmation/token/WALLET_ID`  
+1. `/v2/confirmation/token/WALLET_ID`  
   This endpoint takes as input confirmation token requests as received by
   Fastly.  The endpoint extracts the client IP address, anonymizes it, and
   forwards it to our Kafka cluster.
@@ -15,13 +15,13 @@ following two HTTP API endpoints:
 2. `/attestation`  
   This endpoint handles requests for remote attestation.  Clients provide a
   nonce, which is then forwarded to the Nitro hypervisor, which returns an
-  attestation document, which allows clients to verify the authenticity of the
+  attestation document, allowing clients to verify the authenticity of the
   secure enclave.
 
 Developer setup
 ---------------
 
-To test, lint, and compile ia2, simply run:
+To test, lint, and compile ia2, run:
 
     make
 
@@ -31,7 +31,7 @@ to run ia2 inside a Nitro Enclave: the code (in particular the
 package that ia2 depends on) checks if it's inside an enclave and if not, it
 skips enclave-specific setup to facilitate local development.
 
-To create a Docker image of ia2, run:
+To create a reproducible Docker image of ia2, run:
 
     make docker
 
@@ -46,4 +46,4 @@ Architecture
 ------------
 
 To learn more about ia2's architecture, take a look at the [architectural
-documentation](doc/architecture.md)
+documentation](doc/architecture.md).
