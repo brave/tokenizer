@@ -50,7 +50,7 @@ func main() {
 	enclave := nitro.NewEnclave(
 		&nitro.Config{
 			SOCKSProxy: fmt.Sprintf("socks5://%s", localProxy),
-			FQDN:       "TODO",
+			FQDN:       "repsys-ip-anon.bsg.brave.software",
 			Port:       8080,
 			UseACME:    false,
 			Debug:      true,
