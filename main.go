@@ -7,10 +7,10 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/brave-experiments/nitro-enclave-utils/randseed"
+	_ "github.com/brave-experiments/nitriding/randseed"
 	uuid "github.com/satori/go.uuid"
 
-	nitro "github.com/brave-experiments/nitro-enclave-utils"
+	"github.com/brave-experiments/nitriding"
 )
 
 const (
@@ -47,8 +47,8 @@ var (
 )
 
 func main() {
-	enclave := nitro.NewEnclave(
-		&nitro.Config{
+	enclave := nitriding.NewEnclave(
+		&nitriding.Config{
 			SOCKSProxy: fmt.Sprintf("socks5://%s", localProxy),
 			FQDN:       "repsys-ip-anon.bsg.brave.software",
 			Port:       8080,
