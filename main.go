@@ -22,7 +22,7 @@ const (
 	useCryptoPAn = true
 	// flushInterval is the time interval after which we flush anonymized
 	// addresses to our Kafka bridge.
-	flushInterval = 300
+	flushInterval = time.Minute * 5
 	// kafkaBridgeURL points to a local socat listener that translates AF_INET
 	// to AF_VSOCK.  In theory, we could talk directly to the AF_VSOCK address
 	// of our Kafka bridge and get rid of socat but that makes testing more

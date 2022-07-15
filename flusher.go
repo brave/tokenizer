@@ -31,9 +31,9 @@ type Flusher struct {
 }
 
 // NewFlusher creates and returns a new Flusher.
-func NewFlusher(flushInterval int, srvURL string) *Flusher {
+func NewFlusher(flushInterval time.Duration, srvURL string) *Flusher {
 	f := &Flusher{
-		flushInterval: time.Duration(flushInterval) * time.Second,
+		flushInterval: flushInterval,
 		addrs:         make(msg.WalletsByKeyID),
 		done:          make(chan bool),
 		srvURL:        srvURL,
