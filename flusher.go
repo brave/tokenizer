@@ -69,7 +69,6 @@ func (f *Flusher) Start() {
 			case <-f.done:
 				return
 			case <-ticker.C:
-				l.Printf("Attempting to send %d anonymized addresses to Kafka bridge.", len(f.addrs))
 				if err := f.sendBatch(); err != nil {
 					l.Printf("Failed to send batch: %s", err)
 				}
@@ -87,6 +86,7 @@ func (f *Flusher) sendBatch() error {
 	if len(f.addrs) == 0 {
 		return nil
 	}
+	l.Printf("Attempting to send %d anonymized addresses to Kafka bridge.", len(f.addrs))
 
 	if f.useKafkaDirectly() {
 		return f.sendBatchViaKafka()
