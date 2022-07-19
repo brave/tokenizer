@@ -1,6 +1,6 @@
 module github.com/brave-experiments/ia2
 
-go 1.17
+go 1.18
 
 require (
 	github.com/Yawning/cryptopan v0.0.0-20170504040949-65bca51288fe

@@ -31,9 +31,9 @@ type Flusher struct {
 }
 
 // NewFlusher creates and returns a new Flusher.
-func NewFlusher(flushInterval int, srvURL string) *Flusher {
+func NewFlusher(flushInterval time.Duration, srvURL string) *Flusher {
 	f := &Flusher{
-		flushInterval: time.Duration(flushInterval) * time.Second,
+		flushInterval: flushInterval,
 		addrs:         make(msg.WalletsByKeyID),
 		done:          make(chan bool),
 		srvURL:        srvURL,
@@ -69,7 +69,6 @@ func (f *Flusher) Start() {
 			case <-f.done:
 				return
 			case <-ticker.C:
-				l.Printf("Attempting to send %d anonymized addresses to Kafka bridge.", len(f.addrs))
 				if err := f.sendBatch(); err != nil {
 					l.Printf("Failed to send batch: %s", err)
 				}
@@ -87,6 +86,7 @@ func (f *Flusher) sendBatch() error {
 	if len(f.addrs) == 0 {
 		return nil
 	}
+	l.Printf("Attempting to send %d anonymized addresses to Kafka bridge.", len(f.addrs))
 
 	if f.useKafkaDirectly() {
 		return f.sendBatchViaKafka()
