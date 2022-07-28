@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -37,10 +38,14 @@ func lookupEnv(envVar string) (string, error) {
 // NewKafkaWriter creates a new Kafka writer based on the environment variable
 // envKafkaBroker and the given certificate files.
 func NewKafkaWriter(certFile, keyFile string) (*kafka.Writer, error) {
-	kafkaBroker, err := lookupEnv(envKafkaBroker)
+	kafkaBrokers, err := lookupEnv(envKafkaBroker)
 	if err != nil {
 		return nil, err
 	}
+	// If we're dealing with a comma-separated list of brokers, simply select
+	// the first one.
+	kafkaBroker := strings.Split(kafkaBrokers, ",")[0]
+
 	l.Printf("Fetched Kafka broker %q from environment variable.", kafkaBroker)
 	kafkaTopic, err := lookupEnv(envKafkaTopic)
 	if err != nil {
