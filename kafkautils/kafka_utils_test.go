@@ -6,6 +6,30 @@ import (
 	"testing"
 )
 
+func TestLookupEnv(t *testing.T) {
+	envVar := "FOO"
+	envValue := "BAR"
+	if err := os.Setenv(envVar, envValue); err != nil {
+		t.Fatalf("Failed to set env var %q: %s", envVar, err)
+	}
+
+	maybeValue, err := lookupEnv(envVar)
+	if err != nil {
+		t.Fatalf("Failed to get env var %q: %s", envVar, err)
+	}
+	if maybeValue != envValue {
+		t.Fatalf("Expected env var to be %q but got %q.", envValue, maybeValue)
+	}
+
+	// Now try to retrieve a non-existing environment variable.
+	if err := os.Unsetenv(envVar); err != nil {
+		t.Fatalf("Failed to unset env var %q: %s", envVar, err)
+	}
+	if _, err := lookupEnv(envVar); err == nil {
+		t.Fatalf("Expected error when looking up unset env var.")
+	}
+}
+
 func TestNewKafkaWriter(t *testing.T) {
 	var err error
 

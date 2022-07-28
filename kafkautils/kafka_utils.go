@@ -17,24 +17,36 @@ const (
 	DefaultKafkaKey = "/etc/kafka/secrets/key"
 	// DefaultKafkaCert holds the default path to the Kafka certificate.
 	DefaultKafkaCert = "/etc/kafka/secrets/certificate"
-
-	kafkaTestTopic = "antifraud_client_addrs_events.testing.repsys.upstream"
-	envKafkaBroker = "KAFKA_BROKERS"
+	envKafkaBroker   = "KAFKA_BROKERS"
+	envKafkaTopic    = "KAFKA_TOPIC"
 )
 
 var l = log.New(os.Stderr, "kafkautils: ", log.Ldate|log.Ltime|log.LUTC|log.Lshortfile)
 
+func lookupEnv(envVar string) (string, error) {
+	value, exists := os.LookupEnv(envVar)
+	if !exists {
+		return "", fmt.Errorf("environment variable %q not set", envVar)
+	}
+	if value == "" {
+		return "", fmt.Errorf("environment variable %q empty", envVar)
+	}
+	return value, nil
+}
+
 // NewKafkaWriter creates a new Kafka writer based on the environment variable
 // envKafkaBroker and the given certificate files.
 func NewKafkaWriter(certFile, keyFile string) (*kafka.Writer, error) {
-	kafkaBroker, exists := os.LookupEnv(envKafkaBroker)
-	if !exists {
-		return nil, fmt.Errorf("environment variable %q not set", envKafkaBroker)
-	}
-	if kafkaBroker == "" {
-		return nil, fmt.Errorf("environment variable %q empty", envKafkaBroker)
+	kafkaBroker, err := lookupEnv(envKafkaBroker)
+	if err != nil {
+		return nil, err
 	}
 	l.Printf("Fetched Kafka broker %q from environment variable.", kafkaBroker)
+	kafkaTopic, err := lookupEnv(envKafkaTopic)
+	if err != nil {
+		return nil, err
+	}
+	l.Printf("Fetched Kafka topic %q from environment variable.", kafkaTopic)
 
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
@@ -44,7 +56,7 @@ func NewKafkaWriter(certFile, keyFile string) (*kafka.Writer, error) {
 
 	return &kafka.Writer{
 		Addr:  kafka.TCP(kafkaBroker),
-		Topic: kafkaTestTopic,
+		Topic: kafkaTopic,
 		Transport: &kafka.Transport{
 			TLS: &tls.Config{Certificates: []tls.Certificate{cert}},
 		},
