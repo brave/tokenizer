@@ -69,7 +69,6 @@ func (f *Flusher) Start() {
 			case <-f.done:
 				return
 			case <-ticker.C:
-				l.Printf("Attempting to send %d anonymized addresses to Kafka bridge.", len(f.addrs))
 				if err := f.sendBatch(); err != nil {
 					l.Printf("Failed to send batch: %s", err)
 				}
@@ -88,18 +87,24 @@ func (f *Flusher) sendBatch() error {
 		return nil
 	}
 
-	if f.useKafkaDirectly() {
-		return f.sendBatchViaKafka()
-	}
-	return f.sendBatchViaHTTP()
-}
-
-func (f *Flusher) sendBatchViaHTTP() error {
 	jsonBytes, err := json.Marshal(f.addrs)
 	if err != nil {
-		return fmt.Errorf("failed to marshal addresses: %s", err)
+		return fmt.Errorf("failed to send anonymized addresses: %s", err)
 	}
 
+	if f.useKafkaDirectly() {
+		err = f.sendBatchViaKafka(jsonBytes)
+	} else {
+		err = f.sendBatchViaHTTP(jsonBytes)
+	}
+	if err == nil {
+		l.Println("Flushed addresses to back end.")
+		f.addrs = make(msg.WalletsByKeyID)
+	}
+	return err
+}
+
+func (f *Flusher) sendBatchViaHTTP(jsonBytes []byte) error {
 	r := bytes.NewReader(jsonBytes)
 	resp, err := http.Post(f.srvURL, "application/json", r)
 	if err != nil {
@@ -109,22 +114,14 @@ func (f *Flusher) sendBatchViaHTTP() error {
 		return fmt.Errorf("got HTTP code %d from Kafka bridge", resp.StatusCode)
 	}
 
-	l.Printf("Flushed %d addresses to Kafka bridge.", len(f.addrs))
-	f.addrs = make(msg.WalletsByKeyID)
-
 	return nil
 }
 
-func (f *Flusher) sendBatchViaKafka() error {
-	jsonStr, err := json.Marshal(f.addrs)
-	if err != nil {
-		return err
-	}
-
+func (f *Flusher) sendBatchViaKafka(jsonBytes []byte) error {
 	return f.writer.WriteMessages(context.Background(),
 		kafka.Message{
 			Key:   nil,
-			Value: []byte(jsonStr),
+			Value: jsonBytes,
 		},
 	)
 }
