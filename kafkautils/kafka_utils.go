@@ -20,8 +20,10 @@ const (
 	DefaultKafkaKey = "/etc/kafka/secrets/key"
 	// DefaultKafkaCert holds the default path to the Kafka certificate.
 	DefaultKafkaCert = "/etc/kafka/secrets/certificate"
-	envKafkaBroker   = "KAFKA_BROKERS"
-	envKafkaTopic    = "KAFKA_TOPIC"
+	// DefaultKafkaCAs holds the default path to our Kafka root CA certificates.
+	DefaultKafkaCAs = "/etc/ssl/cacerts"
+	envKafkaBroker  = "KAFKA_BROKERS"
+	envKafkaTopic   = "KAFKA_TOPIC"
 )
 
 var l = log.New(os.Stderr, "kafkautils: ", log.Ldate|log.Ltime|log.LUTC|log.Lshortfile)
@@ -39,7 +41,7 @@ func lookupEnv(envVar string) (string, error) {
 
 // NewKafkaWriter creates a new Kafka writer based on the environment variable
 // envKafkaBroker and the given certificate files.
-func NewKafkaWriter(certFile, keyFile string) (*kafka.Writer, error) {
+func NewKafkaWriter(certFile, keyFile, caFile string) (*kafka.Writer, error) {
 	kafkaBrokers, err := lookupEnv(envKafkaBroker)
 	if err != nil {
 		return nil, err
@@ -61,8 +63,7 @@ func NewKafkaWriter(certFile, keyFile string) (*kafka.Writer, error) {
 	}
 	l.Println("Loaded certificate and key file for Kafka.")
 
-	// Add certificate as root CA.
-	rawCert, err := os.ReadFile(certFile)
+	rawCert, err := os.ReadFile(caFile)
 	if err != nil {
 		return nil, err
 	}

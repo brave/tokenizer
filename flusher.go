@@ -42,7 +42,11 @@ func NewFlusher(flushInterval time.Duration, srvURL string) *Flusher {
 	// If we're running outside an enclave, we can talk to Kafka directly,
 	// without having to rely on our HTTP-to-Kafka bridge.  In that case,
 	// instantiate a Kafka writer and don't use a bridge.
-	kafkaWriter, err := kutil.NewKafkaWriter(kutil.DefaultKafkaCert, kutil.DefaultKafkaKey)
+	kafkaWriter, err := kutil.NewKafkaWriter(
+		kutil.DefaultKafkaCert,
+		kutil.DefaultKafkaKey,
+		kutil.DefaultKafkaCAs,
+	)
 	if err == nil {
 		l.Println("Successfully instantiated Kafka writer; assuming we're outside an enclave.")
 		f.writer = kafkaWriter

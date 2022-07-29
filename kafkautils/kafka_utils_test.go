@@ -38,7 +38,7 @@ func TestNewKafkaWriter(t *testing.T) {
 		t.Fatalf("Failed to unset env variable: %s", err)
 	}
 
-	_, err = NewKafkaWriter(DefaultKafkaCert, DefaultKafkaKey)
+	_, err = NewKafkaWriter(DefaultKafkaCert, DefaultKafkaKey, DefaultKafkaCAs)
 	if err == nil {
 		t.Fatal("Failed to return an error because env variable was unset.")
 	}
@@ -50,7 +50,7 @@ func TestNewKafkaWriter(t *testing.T) {
 	if err := os.Setenv(envKafkaBroker, "127.0.0.1:1234"); err != nil {
 		t.Fatalf("Failed to set env variable: %s", err)
 	}
-	_, err = NewKafkaWriter(DefaultKafkaCert, DefaultKafkaKey)
+	_, err = NewKafkaWriter(DefaultKafkaCert, DefaultKafkaKey, DefaultKafkaCAs)
 	if err == nil {
 		t.Fatal("Failed to return an error because cert doesn't exist.")
 	}
