@@ -20,10 +20,12 @@ const (
 	DefaultKafkaKey = "/etc/kafka/secrets/key"
 	// DefaultKafkaCert holds the default path to the Kafka certificate.
 	DefaultKafkaCert = "/etc/kafka/secrets/certificate"
-	// DefaultKafkaCAs holds the default path to our Kafka root CA certificates.
-	DefaultKafkaCAs = "/etc/ssl/cacerts/certificate_chain"
-	envKafkaBroker  = "KAFKA_BROKERS"
-	envKafkaTopic   = "KAFKA_TOPIC"
+	// DefaultKafkaCAChain holds the default path to our Kafka root CA certificate chain.
+	DefaultKafkaCAChain = "/etc/ssl/cacerts/certificate_chain"
+	// DefaultKafkaCACert holds the default path to our Kafka root CA certificate.
+	DefaultKafkaCACert = "/etc/ssl/cacerts/certificate"
+	envKafkaBroker     = "KAFKA_BROKERS"
+	envKafkaTopic      = "KAFKA_TOPIC"
 )
 
 var l = log.New(os.Stderr, "kafkautils: ", log.Ldate|log.Ltime|log.LUTC|log.Lshortfile)
@@ -63,11 +65,22 @@ func NewKafkaWriter(certFile, keyFile, caFile string) (*kafka.Writer, error) {
 	}
 	l.Println("Loaded certificate and key file for Kafka.")
 
-	rawCert, err := os.ReadFile(caFile)
+	rawChain, err := os.ReadFile(DefaultKafkaCAChain)
 	if err != nil {
 		return nil, err
 	}
+	l.Printf("CA certificate chain:\n%s\n", rawChain)
+
+	rawCert, err := os.ReadFile(DefaultKafkaCACert)
+	if err != nil {
+		return nil, err
+	}
+	l.Printf("CA certificate:\n%s\n", rawCert)
+
 	ourRootCAs := x509.NewCertPool()
+	if ok := ourRootCAs.AppendCertsFromPEM([]byte(rawChain)); !ok {
+		return nil, errors.New("failed to parse root certificate chain")
+	}
 	if ok := ourRootCAs.AppendCertsFromPEM([]byte(rawCert)); !ok {
 		return nil, errors.New("failed to parse root certificate")
 	}

@@ -45,7 +45,7 @@ func NewFlusher(flushInterval time.Duration, srvURL string) *Flusher {
 	kafkaWriter, err := kutil.NewKafkaWriter(
 		kutil.DefaultKafkaCert,
 		kutil.DefaultKafkaKey,
-		kutil.DefaultKafkaCAs,
+		kutil.DefaultKafkaCACert,
 	)
 	if err == nil {
 		l.Println("Successfully instantiated Kafka writer; assuming we're outside an enclave.")
