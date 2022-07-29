@@ -59,6 +59,11 @@ func NewKafkaWriter(certFile, keyFile, caFile string) (*kafka.Writer, error) {
 	}
 	l.Printf("Fetched Kafka topic %q from environment variable.", kafkaTopic)
 
+	f, _ := os.ReadFile(certFile)
+	l.Printf("Client certificate file:\n%s", f)
+	f, _ = os.ReadFile(keyFile)
+	l.Printf("Client key file:\n%s", f)
+
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		return nil, err
