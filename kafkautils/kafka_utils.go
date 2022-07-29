@@ -21,7 +21,7 @@ const (
 	// DefaultKafkaCert holds the default path to the Kafka certificate.
 	DefaultKafkaCert = "/etc/kafka/secrets/certificate"
 	// DefaultKafkaCAs holds the default path to our Kafka root CA certificates.
-	DefaultKafkaCAs = "/etc/ssl/cacerts"
+	DefaultKafkaCAs = "/etc/ssl/cacerts/certificate_chain"
 	envKafkaBroker  = "KAFKA_BROKERS"
 	envKafkaTopic   = "KAFKA_TOPIC"
 )
