@@ -77,11 +77,15 @@ func NewKafkaWriter(certFile, keyFile, caFile string) (*kafka.Writer, error) {
 	}
 	l.Printf("CA certificate:\n%s\n", rawCert)
 
-	ourRootCAs := x509.NewCertPool()
-	if ok := ourRootCAs.AppendCertsFromPEM([]byte(rawChain)); !ok {
+	ourRootCAs, err := x509.SystemCertPool()
+	if err != nil {
+		l.Printf("Failed to instantiate system cert pool: %s", err)
+		ourRootCAs = x509.NewCertPool()
+	}
+	if ok := ourRootCAs.AppendCertsFromPEM(rawChain); !ok {
 		return nil, errors.New("failed to parse root certificate chain")
 	}
-	if ok := ourRootCAs.AppendCertsFromPEM([]byte(rawCert)); !ok {
+	if ok := ourRootCAs.AppendCertsFromPEM(rawCert); !ok {
 		return nil, errors.New("failed to parse root certificate")
 	}
 
