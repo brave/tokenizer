@@ -7,10 +7,10 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/brave-experiments/nitriding/randseed"
+	_ "github.com/brave/nitriding/randseed"
 	uuid "github.com/satori/go.uuid"
 
-	"github.com/brave-experiments/nitriding"
+	"github.com/brave/nitriding"
 )
 
 const (

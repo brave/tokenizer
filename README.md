@@ -27,7 +27,7 @@ To test, lint, and compile ia2, run:
 
 You can then start ia2 by executing the `ia2` binary.  Note that you don't need
 to run ia2 inside a Nitro Enclave: the code (in particular the
-[nitriding](https://github.com/brave-experiments/nitriding)
+[nitriding](https://github.com/brave/nitriding)
 package that ia2 depends on) checks if it's inside an enclave and if not, it
 skips enclave-specific setup to facilitate local development.
 
