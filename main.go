@@ -47,6 +47,7 @@ var (
 )
 
 func main() {
+	l.Printf("Running as UID %d.", os.Getuid())
 	enclave := nitriding.NewEnclave(
 		&nitriding.Config{
 			SOCKSProxy: fmt.Sprintf("socks5://%s", localProxy),
