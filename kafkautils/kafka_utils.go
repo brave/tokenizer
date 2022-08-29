@@ -58,7 +58,10 @@ func NewKafkaWriter(certFile, keyFile string) (*kafka.Writer, error) {
 		Addr:  kafka.TCP(kafkaBroker),
 		Topic: kafkaTopic,
 		Transport: &kafka.Transport{
-			TLS: &tls.Config{Certificates: []tls.Certificate{cert}},
+			TLS: &tls.Config{
+				Certificates: []tls.Certificate{cert},
+				MinVersion:   tls.VersionTLS13,
+			},
 		},
 	}, nil
 }
