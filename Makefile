@@ -38,6 +38,11 @@ docker:
 		--destination ia2 \
 		--context dir:///workspace/ && cat ia2-repro.tar | docker load
 
+update-deps:
+	go get -u ./...
+	go mod tidy
+	go mod vendor
+
 $(binary): $(godeps)
 	go build -o $(binary)
 
