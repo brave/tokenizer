@@ -28,8 +28,8 @@ github.com/hf/nsm
 github.com/hf/nsm/ioc
 github.com/hf/nsm/request
 github.com/hf/nsm/response
-# github.com/klauspost/compress v1.15.9
-## explicit; go 1.16
+# github.com/klauspost/compress v1.15.11
+## explicit; go 1.17
 github.com/klauspost/compress
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -48,7 +48,7 @@ github.com/mdlayher/vsock
 # github.com/milosgajdos/tenus v0.0.3
 ## explicit; go 1.13
 github.com/milosgajdos/tenus
-# github.com/pierrec/lz4/v4 v4.1.15
+# github.com/pierrec/lz4/v4 v4.1.16
 ## explicit; go 1.14
 github.com/pierrec/lz4/v4
 github.com/pierrec/lz4/v4/internal/lz4block
@@ -58,7 +58,7 @@ github.com/pierrec/lz4/v4/internal/xxh32
 # github.com/satori/go.uuid v1.2.0
 ## explicit
 github.com/satori/go.uuid
-# github.com/segmentio/kafka-go v0.4.34
+# github.com/segmentio/kafka-go v0.4.35
 ## explicit; go 1.15
 github.com/segmentio/kafka-go
 github.com/segmentio/kafka-go/compress
@@ -102,7 +102,7 @@ github.com/segmentio/kafka-go/sasl
 # github.com/x448/float16 v0.8.4
 ## explicit; go 1.11
 github.com/x448/float16
-# golang.org/x/crypto v0.0.0-20220824171710-5757bc0c5503
+# golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
 ## explicit; go 1.17
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
@@ -114,17 +114,16 @@ golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/nacl/box
 golang.org/x/crypto/nacl/secretbox
 golang.org/x/crypto/salsa20/salsa
-# golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b
+# golang.org/x/net v0.0.0-20220926192436-02166a98028e
 ## explicit; go 1.17
 golang.org/x/net/bpf
 golang.org/x/net/idna
-# golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde
+# golang.org/x/sync v0.0.0-20220923202941-7f9b1623fab7
 ## explicit
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.0.0-20220825204002-c680a09ffe64
+# golang.org/x/sys v0.0.0-20220926163933-8cfa568d3c25
 ## explicit; go 1.17
 golang.org/x/sys/cpu
-golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 # golang.org/x/text v0.3.7
 ## explicit; go 1.17
