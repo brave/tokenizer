@@ -1,4 +1,4 @@
-module github.com/brave-experiments/ia2
+module github.com/brave/ia2
 
 go 1.19
 

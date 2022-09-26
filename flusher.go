@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	kutil "github.com/brave-experiments/ia2/kafkautils"
-	msg "github.com/brave-experiments/ia2/message"
+	kutil "github.com/brave/ia2/kafkautils"
+	msg "github.com/brave/ia2/message"
 	"github.com/segmentio/kafka-go"
 )
 
