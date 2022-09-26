@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -37,7 +37,7 @@ func TestFlusher(t *testing.T) {
 			}
 		}()
 
-		receivedJSON, err := ioutil.ReadAll(r.Body)
+		receivedJSON, err := io.ReadAll(r.Body)
 		if err != nil {
 			t.Fatalf("failed to read request body: %s", err)
 		}
