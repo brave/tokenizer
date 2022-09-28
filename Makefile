@@ -9,7 +9,7 @@ test:
 	go test -cover ./...
 
 lint:
-	golangci-lint run -E gofmt -E revive --exclude-use-default=false
+	golangci-lint run
 
 image:
 	$(eval IMAGE=$(shell ko publish --local . 2>/dev/null))

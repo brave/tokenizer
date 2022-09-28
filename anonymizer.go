@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/Yawning/cryptopan"
-	msg "github.com/brave-experiments/ia2/message"
+	msg "github.com/brave/ia2/message"
 	uuid "github.com/satori/go.uuid"
 )
 

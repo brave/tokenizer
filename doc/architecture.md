@@ -87,7 +87,7 @@ setting the `HTTP_PROXY` and `HTTPS_PROXY` environment variables to, say,
 attempt to establish an AF\_INET-based rather than an AF\_VSOCK-based socket to
 the SOCKS proxy.  We therefore need to add a proxy that translates between
 AF\_INET and AF\_VSOCK.  The
-[nitriding](https://github.com/brave-experiments/nitriding)
+[nitriding](https://github.com/brave/nitriding)
 package takes care of that, and forwards SOCKS connections to the SOCKS proxy
 running on the parent EC2 instance.
 

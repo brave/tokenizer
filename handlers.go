@@ -9,7 +9,7 @@ import (
 	"net"
 	"net/http"
 
-	msg "github.com/brave-experiments/ia2/message"
+	msg "github.com/brave/ia2/message"
 	"github.com/go-chi/chi/v5"
 	uuid "github.com/satori/go.uuid"
 )

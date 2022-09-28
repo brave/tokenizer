@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sync"
 	"testing"
 
-	msg "github.com/brave-experiments/ia2/message"
+	msg "github.com/brave/ia2/message"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -37,7 +37,7 @@ func TestFlusher(t *testing.T) {
 			}
 		}()
 
-		receivedJSON, err := ioutil.ReadAll(r.Body)
+		receivedJSON, err := io.ReadAll(r.Body)
 		if err != nil {
 			t.Fatalf("failed to read request body: %s", err)
 		}

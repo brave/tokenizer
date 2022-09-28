@@ -1,3 +1,5 @@
+// Package message provides data structures that represent a mapping from
+// wallet addresses to anonymized IP addresses.
 package message
 
 import (
