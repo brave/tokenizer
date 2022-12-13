@@ -20,12 +20,14 @@ const (
 	DefaultKafkaKey = "/etc/kafka/secrets/key"
 	// DefaultKafkaCert holds the default path to the Kafka certificate.
 	DefaultKafkaCert = "/etc/kafka/secrets/certificate"
-	// DefaultKafkaCAChain holds the default path to our Kafka root CA certificate chain.
-	DefaultKafkaCAChain = "/etc/ssl/cacerts/certificate_chain"
-	// DefaultKafkaCACert holds the default path to our Kafka root CA certificate.
-	DefaultKafkaCACert = "/etc/ssl/cacerts/certificate"
-	envKafkaBroker     = "KAFKA_BROKERS"
-	envKafkaTopic      = "KAFKA_TOPIC"
+	// KafkaInterCert holds the path to our Kafka intermediate cert.
+	KafkaInterCert = "/etc/ssl/cacerts/intermediate_certificate"
+	// KafkaInterChain holds the path to our Kafka intermediate cert chain.
+	KafkaInterChain = "/etc/ssl/cacerts/intermediate_certificate_chain"
+	// KafkaRootCert holds the path to our Kafka root cert.
+	KafkaRootCert  = "/etc/ssl/cacerts/root_certificate"
+	envKafkaBroker = "KAFKA_BROKERS"
+	envKafkaTopic  = "KAFKA_TOPIC"
 )
 
 var l = log.New(os.Stderr, "kafkautils: ", log.Ldate|log.Ltime|log.LUTC|log.Lshortfile)
@@ -43,7 +45,7 @@ func lookupEnv(envVar string) (string, error) {
 
 // NewKafkaWriter creates a new Kafka writer based on the environment variable
 // envKafkaBroker and the given certificate files.
-func NewKafkaWriter(certFile, keyFile, caFile string) (*kafka.Writer, error) {
+func NewKafkaWriter(certFile, keyFile string) (*kafka.Writer, error) {
 	kafkaBrokers, err := lookupEnv(envKafkaBroker)
 	if err != nil {
 		return nil, err
@@ -70,27 +72,36 @@ func NewKafkaWriter(certFile, keyFile, caFile string) (*kafka.Writer, error) {
 	}
 	l.Println("Loaded certificate and key file for Kafka.")
 
-	rawChain, err := os.ReadFile(DefaultKafkaCAChain)
+	rawInterCert, err := os.ReadFile(KafkaInterCert)
 	if err != nil {
 		return nil, err
 	}
-	l.Printf("CA certificate chain:\n%s\n", rawChain)
+	l.Printf("CA intermediate cert:\n%s\n", rawInterCert)
 
-	rawCert, err := os.ReadFile(DefaultKafkaCACert)
+	rawInterChain, err := os.ReadFile(KafkaInterChain)
 	if err != nil {
 		return nil, err
 	}
-	l.Printf("CA certificate:\n%s\n", rawCert)
+	l.Printf("CA intermediate cert chain:\n%s\n", rawInterChain)
+
+	rawRootCert, err := os.ReadFile(KafkaRootCert)
+	if err != nil {
+		return nil, err
+	}
+	l.Printf("CA certificate:\n%s\n", rawRootCert)
 
 	ourRootCAs, err := x509.SystemCertPool()
 	if err != nil {
 		l.Printf("Failed to instantiate system cert pool: %s", err)
 		ourRootCAs = x509.NewCertPool()
 	}
-	if ok := ourRootCAs.AppendCertsFromPEM(rawChain); !ok {
-		return nil, errors.New("failed to parse root certificate chain")
+	if ok := ourRootCAs.AppendCertsFromPEM(rawInterCert); !ok {
+		return nil, errors.New("failed to parse intermediate certificate")
 	}
-	if ok := ourRootCAs.AppendCertsFromPEM(rawCert); !ok {
+	if ok := ourRootCAs.AppendCertsFromPEM(rawInterChain); !ok {
+		return nil, errors.New("failed to parse intermediate certificate chain")
+	}
+	if ok := ourRootCAs.AppendCertsFromPEM(rawRootCert); !ok {
 		return nil, errors.New("failed to parse root certificate")
 	}
 
