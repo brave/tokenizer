@@ -6,10 +6,8 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/brave/nitriding/randseed"
+	"github.com/go-chi/chi/v5"
 	uuid "github.com/satori/go.uuid"
-
-	"github.com/brave/nitriding"
 )
 
 const (
@@ -44,17 +42,6 @@ var (
 
 func main() {
 	l.Printf("Running as UID %d.", os.Getuid())
-	enclave := nitriding.NewEnclave(
-		&nitriding.Config{
-			FQDN:    "repsys-ip-anon.bsg.brave.software",
-			Port:    8080,
-			UseACME: false,
-		},
-	)
-	enclave.AddRoute(http.MethodPost, "/address", addressHandler)
-	// The following endpoint must be identical to what our ads server exposes.
-	enclave.AddRoute(http.MethodGet, "/v1/confirmation/token/{walletID}", confTokenHandler)
-	enclave.AddRoute(http.MethodGet, "/v2/confirmation/token/{walletID}", confTokenHandler)
 
 	method := methodCryptoPAn
 	if !useCryptoPAn {
@@ -67,8 +54,13 @@ func main() {
 	flusher.Start()
 	defer flusher.Stop()
 
-	// Start blocks for as long as the enclave is alive.
-	if err := enclave.Start(); err != nil {
-		l.Fatalf("Enclave terminated: %v", err)
+	r := chi.NewRouter()
+	r.Post("/address", addressHandler)
+	r.Get("/v1/confirmation/token/{walletID}", confTokenHandler)
+	r.Get("/v2/confirmation/token/{walletID}", confTokenHandler)
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: r,
 	}
+	l.Fatal(srv.ListenAndServe())
 }
