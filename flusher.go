@@ -97,8 +97,10 @@ func (f *Flusher) sendBatch() error {
 	}
 
 	if f.useKafkaDirectly() {
+		l.Println("Attempting to send batch via Kafka.")
 		err = f.sendBatchViaKafka(jsonBytes)
 	} else {
+		l.Println("Attempting to send batch via HTTP.")
 		err = f.sendBatchViaHTTP(jsonBytes)
 	}
 	if err == nil {
