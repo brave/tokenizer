@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -32,9 +31,6 @@ const (
 	// anonymize IP addresses.  Once the key expires, we rotate it by
 	// generating a new one.
 	KeyExpiration = time.Hour * 24 * 30 * 6
-	// localProxy determines the IP address and port of the enclave-internal
-	// proxy that translates between AF_INET and AF_VSOCK.
-	localProxy = "127.0.0.1:1080"
 )
 
 var (
@@ -50,11 +46,9 @@ func main() {
 	l.Printf("Running as UID %d.", os.Getuid())
 	enclave := nitriding.NewEnclave(
 		&nitriding.Config{
-			SOCKSProxy: fmt.Sprintf("socks5://%s", localProxy),
-			FQDN:       "repsys-ip-anon.bsg.brave.software",
-			Port:       8080,
-			UseACME:    false,
-			Debug:      true,
+			FQDN:    "repsys-ip-anon.bsg.brave.software",
+			Port:    8080,
+			UseACME: false,
 		},
 	)
 	enclave.AddRoute(http.MethodPost, "/address", addressHandler)
