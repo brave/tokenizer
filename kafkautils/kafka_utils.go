@@ -105,13 +105,14 @@ func NewKafkaWriter(certFile, keyFile string) (*kafka.Writer, error) {
 		return nil, errors.New("failed to parse root certificate")
 	}
 
+	l.Printf("Creating Kafka writer for %q using topic %q.", kafkaBroker, kafkaTopic)
 	return &kafka.Writer{
 		Addr:  kafka.TCP(kafkaBroker),
 		Topic: kafkaTopic,
 		Transport: &kafka.Transport{
 			TLS: &tls.Config{
 				Certificates: []tls.Certificate{cert},
-				MinVersion:   tls.VersionTLS13,
+				MinVersion:   tls.VersionTLS12,
 				RootCAs:      ourRootCAs,
 			},
 		},
