@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -x
 
@@ -10,4 +10,4 @@ then
 fi
 
 # Start ia2, our main service.
-/ia2
+/bin/ia2

@@ -7,18 +7,15 @@ COPY message ./message
 RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o ia2 ./
 
-# Copy from the builder to keep the final image reproducible and small.  If we
-# don't do this, we end up with non-deterministic build artifacts.
-FROM debian
+# Our final image is based on amazoncorretto because it contains OpenJDK.  We
+# need the tool keytool which is part of OpenJDK.
+FROM amazoncorretto:8-alpine-jre
 
-RUN echo 'root:root' | chpasswd
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt install -y nmap openssl tcpdump
-
-COPY --from=builder /src/ia2 /
-COPY start.sh /
+COPY --from=builder /src/ia2 /bin/
+COPY start.sh /bin/
 EXPOSE 8080
+
 # Switch to the UID that's typically reserved for the user "nobody".
 USER 65534
 
-CMD ["/start.sh"]
+CMD ["/bin/start.sh"]
