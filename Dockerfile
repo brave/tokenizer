@@ -16,8 +16,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt install -y nmap openssl tcpdump
 
 COPY --from=builder /src/ia2 /
+COPY start.sh /
 EXPOSE 8080
 # Switch to the UID that's typically reserved for the user "nobody".
 USER 65534
 
-CMD ["/ia2"]
+CMD ["/start.sh"]
