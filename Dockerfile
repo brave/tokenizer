@@ -19,7 +19,4 @@ COPY start.sh /bin/
 RUN chmod 755 /bin/start.sh
 EXPOSE 8080
 
-# Switch to the UID that's typically reserved for the user "nobody".
-USER 65534
-
 CMD ["/bin/start.sh"]
