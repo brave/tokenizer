@@ -12,6 +12,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o ia2 ./
 FROM amazoncorretto:8-alpine-jre
 
 RUN apk add --no-cache bash
+RUN apk add --no-cache openssl
 
 COPY --from=builder /src/ia2 /bin/
 COPY start.sh /bin/
