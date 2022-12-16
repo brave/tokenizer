@@ -11,8 +11,11 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o ia2 ./
 # need the tool keytool which is part of OpenJDK.
 FROM amazoncorretto:8-alpine-jre
 
+RUN apk add --no-cache bash
+
 COPY --from=builder /src/ia2 /bin/
 COPY start.sh /bin/
+RUN chmod 755 /bin/start.sh
 EXPOSE 8080
 
 # Switch to the UID that's typically reserved for the user "nobody".
