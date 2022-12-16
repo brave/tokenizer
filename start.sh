@@ -6,8 +6,7 @@ set -x
 entrypoint="/bin/entrypoint.sh"
 if [ -f "$entrypoint" ]
 then
-    /bin/entrypoint.sh &
-    sleep 5
+    /bin/entrypoint.sh
 fi
 
 # Start ia2, our main service.
