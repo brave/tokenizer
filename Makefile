@@ -1,22 +1,25 @@
-.PHONY: all test lint eif ia2 clean
-
 binary = ia2
 godeps = *.go go.mod go.sum
 
+.PHONY: all
 all: test lint $(binary)
 
+.PHONY: test
 test:
 	go test -cover ./...
 
+.PHONY: lint
 lint:
 	golangci-lint run
 
+.PHONY: image
 image:
 	$(eval IMAGE=$(shell ko publish --local . 2>/dev/null))
 	@echo "Built image URI: $(IMAGE)."
 	$(eval DIGEST=$(shell echo $(IMAGE) | cut -d ':' -f 2))
 	@echo "SHA-256 digest: $(DIGEST)"
 
+.PHONY: eif
 eif: image
 	nitro-cli build-enclave --docker-uri $(IMAGE) --output-file ko.eif
 	$(eval ENCLAVE_ID=$(shell nitro-cli describe-enclaves | jq -r '.[0].EnclaveID'))
@@ -26,6 +29,7 @@ eif: image
 	@echo "Showing enclave logs."
 	nitro-cli console --enclave-id $$(nitro-cli describe-enclaves | jq -r '.[0].EnclaveID')
 
+.PHONY: docker
 docker:
 	docker run \
 		-v $(PWD):/workspace \
@@ -38,6 +42,7 @@ docker:
 		--destination ia2 \
 		--context dir:///workspace/ && cat ia2-repro.tar | docker load
 
+.PHONY: update-deps
 update-deps:
 	go get -u ./...
 	go mod tidy
@@ -46,5 +51,6 @@ update-deps:
 $(binary): $(godeps)
 	go build -o $(binary)
 
+.PHONY: clean
 clean:
 	rm $(binary)
