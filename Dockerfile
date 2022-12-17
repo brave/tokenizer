@@ -7,16 +7,12 @@ COPY message ./message
 RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o ia2 ./
 
-# Our final image is based on amazoncorretto because it contains OpenJDK.  We
-# need the tool keytool which is part of OpenJDK.
-FROM amazoncorretto:8-alpine-jre
+FROM debian
 
-RUN apk add --no-cache bash
-RUN apk add --no-cache openssl
+USER root
+RUN apt update && apt install -y nmap openssl tcpdump
 
 COPY --from=builder /src/ia2 /bin/
-COPY start.sh /bin/
-RUN chmod 755 /bin/start.sh
 EXPOSE 8080
 
-CMD ["/bin/start.sh"]
+CMD ["/bin/ia2"]
