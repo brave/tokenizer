@@ -33,13 +33,13 @@ func TestFlusher(t *testing.T) {
 		defer wg.Done()
 		defer func() {
 			if err := r.Body.Close(); err != nil {
-				t.Errorf("failed to close request body: %s", err)
+				t.Errorf("failed to close request body: %v", err)
 			}
 		}()
 
 		receivedJSON, err := io.ReadAll(r.Body)
 		if err != nil {
-			t.Fatalf("failed to read request body: %s", err)
+			t.Fatalf("failed to read request body: %v", err)
 		}
 
 		expectedJSON, err := json.Marshal(expectedPayload)

@@ -93,7 +93,7 @@ func (f *Flusher) sendBatch() error {
 
 	jsonBytes, err := json.Marshal(f.addrs)
 	if err != nil {
-		return fmt.Errorf("failed to send anonymized addresses: %s", err)
+		return fmt.Errorf("failed to send anonymized addresses: %w", err)
 	}
 
 	if f.useKafkaDirectly() {
@@ -114,7 +114,7 @@ func (f *Flusher) sendBatchViaHTTP(jsonBytes []byte) error {
 	r := bytes.NewReader(jsonBytes)
 	resp, err := http.Post(f.srvURL, "application/json", r)
 	if err != nil {
-		return fmt.Errorf("failed to post addresses to Kafka bridge: %s", err)
+		return fmt.Errorf("failed to post addresses to Kafka bridge: %w", err)
 	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("got HTTP code %d from Kafka bridge", resp.StatusCode)
