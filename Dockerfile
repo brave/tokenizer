@@ -7,10 +7,9 @@ COPY message ./message
 RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o ia2 ./
 
-FROM debian
-
-USER root
-RUN apt update && apt install -y nmap openssl tcpdump
+# Copy from the builder to keep the final image reproducible and small.  If we
+# don't do this, we end up with non-deterministic build artifacts.
+FROM scratch
 
 COPY --from=builder /src/ia2 /bin/
 EXPOSE 8080
