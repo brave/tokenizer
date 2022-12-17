@@ -1,4 +1,5 @@
 binary = ia2
+tmp_image = ia2-repro.tar
 godeps = *.go go.mod go.sum
 
 .PHONY: all
@@ -38,9 +39,10 @@ docker:
 		--reproducible \
 		--dockerfile /workspace/Dockerfile \
 		--no-push \
-		--tarPath /workspace/ia2-repro.tar \
+		--tarPath /workspace/$(tmp_image) \
 		--destination ia2 \
-		--context dir:///workspace/ && cat ia2-repro.tar | docker load
+		--context dir:///workspace/ && cat $(tmp_image) | docker load
+	rm -f $(tmp_image)
 
 .PHONY: update-deps
 update-deps:
@@ -53,4 +55,4 @@ $(binary): $(godeps)
 
 .PHONY: clean
 clean:
-	rm $(binary)
+	rm -f $(binary) $(tmp_image)
