@@ -1,54 +1,52 @@
-// Package message provides data structures that represent a mapping from
-// wallet addresses to anonymized IP addresses.
-package message
+package main
 
 import (
 	"encoding/json"
-	"fmt"
 
 	uuid "github.com/satori/go.uuid"
 )
 
-// Empty represents an empty map value.
-type Empty struct{}
+type ourString string
+
+func (s ourString) bytes() []byte {
+	return []byte(s)
+}
+
+// empty represents an empty map value.
+type empty struct{}
 
 // AddressSet represents a set of string-encoded IP addresses.
-type AddressSet map[string]Empty
+type AddressSet map[string]empty
 
 // AddrsByWallet maps a wallet ID to a set of its anonymized IP addresses, all
 // represented as strings.
 type AddrsByWallet map[uuid.UUID]AddressSet
 
-// KeyID is a UUID that's derived from the anonymizer's current key.
-type KeyID struct {
-	uuid.UUID
-}
-
 // WalletsByKeyID maps a key ID to a map of type addrsByWallet.  Key IDs
 // represent data collection epochs: whenever the key ID rotates, a new epoch
 // begins, and our collection of wallet-to-address records begins afresh.
-type WalletsByKeyID map[KeyID]AddrsByWallet
+type WalletsByKeyID map[keyID]AddrsByWallet
 
 // MarshalJSON marshals the given key ID-to-wallets map and turns it into the
 // following JSON:
 //
-// {
-//   "keyid": {
-//     "024752c9-7090-4123-939e-67b08042d7d7": {
-//       "addrs": {
-//         "68a7deb0-615c-4f26-bf87-6b122732d8e9": [
-//           "1.1.1.1",
-//           "2.2.2.2",
-//           ...
-//         ],
-//         ...
-//       }
-//     }
-//   }
-// }
+//	{
+//	  "keyid": {
+//	    "024752c9-7090-4123-939e-67b08042d7d7": {
+//	      "addrs": {
+//	        "68a7deb0-615c-4f26-bf87-6b122732d8e9": [
+//	          "1.1.1.1",
+//	          "2.2.2.2",
+//	          ...
+//	        ],
+//	        ...
+//	      }
+//	    }
+//	  }
+//	}
 func (w WalletsByKeyID) MarshalJSON() ([]byte, error) {
 	type toMarshal struct {
-		WalletsByKeyID map[KeyID]AddrsByWallet `json:"keyid"`
+		WalletsByKeyID map[keyID]AddrsByWallet `json:"keyid"`
 	}
 	m := &toMarshal{WalletsByKeyID: make(WalletsByKeyID)}
 	for keyID, wallets := range w {
@@ -61,23 +59,23 @@ func (w WalletsByKeyID) MarshalJSON() ([]byte, error) {
 // WalletsByKeyID.
 func (w WalletsByKeyID) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &struct {
-		WalletsByKeyID map[KeyID]AddrsByWallet `json:"keyid"`
+		WalletsByKeyID map[keyID]AddrsByWallet `json:"keyid"`
 	}{w})
 }
 
 // MarshalJSON marshals the given addresses and turns it into the following
 // JSON:
 //
-// {
-//   "addrs": {
-//     "68a7deb0-615c-4f26-bf87-6b122732d8e9": [
-//       "1.1.1.1",
-//       "2.2.2.2",
-//       ...
-//     ],
-//     ...
-//   }
-// }
+//	{
+//	  "addrs": {
+//	    "68a7deb0-615c-4f26-bf87-6b122732d8e9": [
+//	      "1.1.1.1",
+//	      "2.2.2.2",
+//	      ...
+//	    ],
+//	    ...
+//	  }
+//	}
 func (a AddrsByWallet) MarshalJSON() ([]byte, error) {
 	type toMarshal struct {
 		Addrs map[string][]string `json:"addrs"`
@@ -113,30 +111,9 @@ func (a *AddrsByWallet) UnmarshalJSON(data []byte) error {
 	for walletID, addrs := range s.AddrsByWallet {
 		addrSet := make(AddressSet)
 		for _, addr := range addrs {
-			addrSet[addr] = Empty{}
+			addrSet[addr] = empty{}
 		}
 		(*a)[walletID] = addrSet
 	}
 	return nil
-}
-
-// String implements the Stringer interface for walletsByKeyID.
-func (w WalletsByKeyID) String() string {
-	var s string
-	for keyID, wallets := range w {
-		s += fmt.Sprintf("Key ID %s: %s\n", keyID, wallets)
-	}
-	return s
-}
-
-// String implements the Stringer interface for addrsByWallet.
-func (a AddrsByWallet) String() string {
-	allAddrSet := make(map[string]Empty)
-	for _, addrSet := range a {
-		for a := range addrSet {
-			allAddrSet[a] = Empty{}
-		}
-
-	}
-	return fmt.Sprintf("Holding %d wallet addresses containing a total of %d unique IP addresses.", len(a), len(allAddrSet))
 }

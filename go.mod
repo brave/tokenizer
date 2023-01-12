@@ -1,4 +1,4 @@
-module github.com/brave/ia2
+module github.com/brave/tkzr
 
 go 1.19
 
@@ -10,7 +10,7 @@ require (
 )
 
 require (
-	github.com/klauspost/compress v1.15.13 // indirect
+	github.com/klauspost/compress v1.15.14 // indirect
 	github.com/pierrec/lz4/v4 v4.1.17 // indirect
 	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be // indirect
 	golang.org/x/net v0.0.0-20220926192436-02166a98028e // indirect

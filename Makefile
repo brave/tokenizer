@@ -1,6 +1,9 @@
-binary = ia2
-tmp_image = ia2-repro.tar
+binary = tkzr
+tmp_image = $(binary)-repro.tar
 godeps = *.go go.mod go.sum
+browser = ${BROWSER}
+cover_out = cover.out
+cover_html = cover.html
 
 .PHONY: all
 all: test lint $(binary)
@@ -12,6 +15,14 @@ test:
 .PHONY: lint
 lint:
 	golangci-lint run
+
+.PHONY: coverage
+coverage:
+	go test -coverprofile=$(cover_out) .
+	go tool cover -html=$(cover_out) -o $(cover_html)
+	${BROWSER} $(shell realpath cover.html)
+	@sleep 1 # Give the browser a second to open the file.
+	rm -f $(cover_out) $(cover_html)
 
 .PHONY: image
 image:
@@ -40,7 +51,7 @@ docker:
 		--dockerfile /workspace/Dockerfile \
 		--no-push \
 		--tarPath /workspace/$(tmp_image) \
-		--destination ia2 \
+		--destination tkzr \
 		--context dir:///workspace/ && cat $(tmp_image) | docker load
 	rm -f $(tmp_image)
 

@@ -1,66 +1,166 @@
 package main
 
 import (
+	"errors"
+	"flag"
+	"fmt"
 	"log"
-	"net/http"
+	"math"
 	"os"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	uuid "github.com/satori/go.uuid"
 )
 
 const (
+	tokenizerCryptoPAn = "cryptopan"
+	tokenizerHmac      = "hmac"
+	tokenizerVerbatim  = "verbatim"
 
-	// We are unable to configure ia2 at runtime, which is why our
-	// configuration options are constants.
+	forwarderStdout = "stdout"
+	forwarderKafka  = "kafka"
 
-	// useCryptoPAn uses Crypto-PAn anonymization instead of a HMAC.
-	useCryptoPAn = true
-	// flushInterval is the time interval after which we flush anonymized
-	// addresses to our Kafka bridge.
-	flushInterval = time.Minute * 5
-	// kafkaBridgeURL points to a local socat listener that translates AF_INET
-	// to AF_VSOCK.  In theory, we could talk directly to the AF_VSOCK address
-	// of our Kafka bridge and get rid of socat but that makes testing more
-	// annoying.  It easier to deal with tests via AF_INET.
-	kafkaBridgeURL = "http://127.0.0.1:8081/addresses"
-	// KeyExpiration determines the expiration time of the key that we use to
-	// anonymize IP addresses.  Once the key expires, we rotate it by
-	// generating a new one.
-	KeyExpiration = time.Hour * 24 * 30 * 6
+	receiverWeb   = "web"
+	receiverStdin = "stdin"
+
+	aggregatorSimple = "simple"
+	aggregatorAddr   = "address"
+
+	defaultTokenizer  = tokenizerHmac
+	defaultAggregator = aggregatorSimple
+	defaultReceiver   = receiverStdin
+	defaultForwarder  = forwarderStdout
 )
 
 var (
-	flusher    *Flusher
-	anonymizer *Anonymizer
-	l          = log.New(os.Stderr, "ia2: ", log.Ldate|log.Ltime|log.LUTC|log.Lshortfile)
+	l = log.New(os.Stderr, "tknzr: ", log.Ldate|log.Ltime|log.LUTC|log.Lshortfile)
 	// Pre-defined UUID namespaces aren't a great fit for our use case, so we
 	// use our own namespace, based on a randomly-generated V4 UUID.
 	uuidNamespace = uuid.Must(uuid.FromString("c298cccd-3c75-4e72-a73b-47811ac13f4f"))
+	ourReceivers  = map[string]func() receiver{
+		receiverStdin: newStdinReceiver,
+		receiverWeb:   newWebReceiver,
+	}
+	ourAggregators = map[string]func() aggregator{
+		aggregatorSimple: newSimpleAggregator,
+		aggregatorAddr:   newAddrAggregator,
+	}
+	ourForwarders = map[string]func() forwarder{
+		forwarderStdout: newStdoutForwarder,
+		forwarderKafka:  newKafkaForwarder,
+	}
+	ourTokenizers = map[string]func() tokenizer{
+		tokenizerHmac:      newHmacTokenizer,
+		tokenizerCryptoPAn: newCryptoPAnTokenizer,
+		tokenizerVerbatim:  newVerbatimTokenizer,
+	}
 )
 
+func bootstrap(c *config, comp *components, done chan empty) {
+	// Propagate our configuration to all components.
+	comp.a.setConfig(c)
+	comp.r.setConfig(c)
+	comp.f.setConfig(c)
+
+	// Tell the aggregator what tokenizer to use.
+	comp.a.use(comp.t)
+	// Tell the aggregator where to get data and where to send it to.
+	comp.a.connect(comp.r.inbox(), comp.f.outbox())
+
+	// Start all components.
+	comp.a.start()
+	defer comp.a.stop()
+	comp.r.start()
+	defer comp.r.stop()
+	comp.f.start()
+	defer comp.f.stop()
+
+	l.Println("Done bootstrapping.  Now waiting for channel to close.")
+	<-done
+}
+
+func parseFlags(progname string, args []string) (*components, *config, error) {
+	var err error
+	var tokenizer, forwarder, aggregator, receiver string
+	var rawFwdInterval, rawKeyExpiry, port int
+
+	fs := flag.NewFlagSet(progname, flag.ContinueOnError)
+
+	fs.IntVar(&rawFwdInterval, "forward-interval", 60*5,
+		"Number of seconds after which data is forwarded to backend.")
+	fs.IntVar(&rawKeyExpiry, "key-expiry", 60*60*24*30*6,
+		"Number of seconds after which keys are rotated.")
+	fs.IntVar(&port, "port", 8080,
+		"Port the Web receiver should listen on.")
+	fs.StringVar(&tokenizer, "tokenizer", defaultTokenizer,
+		"The name of the tokenizer to use.")
+	fs.StringVar(&forwarder, "forwarder", defaultForwarder,
+		"The name of the forwarder to use.")
+	fs.StringVar(&aggregator, "aggregator", defaultAggregator,
+		"The name of the aggregator to use.")
+	fs.StringVar(&receiver, "receiver", defaultReceiver,
+		"The name of the receiver to use.")
+	if err := fs.Parse(args); err != nil {
+		return nil, nil, err
+	}
+
+	c := &config{}
+	// Parse configuration flags.
+	if port < 1 || port > math.MaxUint16 {
+		return nil, nil, fmt.Errorf("port must be in interval [1, %d]", math.MaxUint16)
+	}
+	c.port = uint16(port)
+	c.keyExpiry, err = time.ParseDuration(fmt.Sprintf("%ds", rawKeyExpiry))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse key expiration: %w", err)
+	}
+	c.fwdInterval, err = time.ParseDuration(fmt.Sprintf("%ds", rawFwdInterval))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse forward interval: %w", err)
+	}
+	if forwarder == forwarderKafka {
+		c.kafkaConfig, err = loadKafkaConfig()
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to parse Kafka config: %w", err)
+		}
+	}
+
+	// Initialize the chosen receiver, tokenizer, aggregator, and forwarder.
+	newTokenizer, exists := ourTokenizers[tokenizer]
+	if !exists {
+		return nil, nil, errors.New("tokenizer does not exist")
+	}
+	newForwarder, exists := ourForwarders[forwarder]
+	if !exists {
+		return nil, nil, errors.New("forwarder does not exist")
+	}
+	newAggregator, exists := ourAggregators[aggregator]
+	if !exists {
+		return nil, nil, errors.New("aggregator does not exist")
+	}
+	newReceiver, exists := ourReceivers[receiver]
+	if !exists {
+		return nil, nil, errors.New("receiver does not exist")
+	}
+	l.Printf("Using receiver=%s, aggregator=%s, tokenizer=%s, forwarder=%s.",
+		receiver, aggregator, tokenizer, forwarder)
+
+	comp := &components{
+		a: newAggregator(),
+		f: newForwarder(),
+		r: newReceiver(),
+		t: newTokenizer(),
+	}
+	return comp, c, nil
+}
+
 func main() {
-	l.Printf("Running as UID %d.", os.Getuid())
-
-	method := methodCryptoPAn
-	if !useCryptoPAn {
-		method = methodHMAC
+	comp, conf, err := parseFlags(os.Args[0], os.Args[1:])
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			os.Exit(1)
+		}
+		l.Fatal(err)
 	}
-	anonymizer = NewAnonymizer(method, KeyExpiration)
-
-	l.Printf("Initializing new flusher with interval %ds.", flushInterval)
-	flusher = NewFlusher(flushInterval, kafkaBridgeURL)
-	flusher.Start()
-	defer flusher.Stop()
-
-	r := chi.NewRouter()
-	r.Post("/address", addressHandler)
-	r.Get("/v1/confirmation/token/{walletID}", confTokenHandler)
-	r.Get("/v2/confirmation/token/{walletID}", confTokenHandler)
-	srv := &http.Server{
-		Addr:    ":8080",
-		Handler: r,
-	}
-	l.Fatal(srv.ListenAndServe())
+	bootstrap(conf, comp, make(chan empty))
 }

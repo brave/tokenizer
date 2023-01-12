@@ -4,7 +4,7 @@ github.com/Yawning/cryptopan
 # github.com/go-chi/chi/v5 v5.0.8
 ## explicit; go 1.14
 github.com/go-chi/chi/v5
-# github.com/klauspost/compress v1.15.13
+# github.com/klauspost/compress v1.15.14
 ## explicit; go 1.17
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
