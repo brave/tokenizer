@@ -39,6 +39,7 @@ func (a *addrAggregator) setConfig(c *config) {
 
 	a.fwdInterval = c.fwdInterval
 	a.keyExpiry = c.keyExpiry
+	l.Printf("Forward interval: %s, key expiry: %s", a.fwdInterval, a.keyExpiry)
 }
 
 // use sets the tokenizer that must be used.

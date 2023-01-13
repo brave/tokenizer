@@ -234,6 +234,7 @@ func loadKafkaConfig() (*kafkaConfig, error) {
 		return nil, errEnvVarUnset
 	}
 
+	l.Println("Loaded Kafka config.")
 	return &kafkaConfig{
 		clientCert:  clientCert,
 		serverCerts: serverCerts,
