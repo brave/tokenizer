@@ -47,7 +47,6 @@ func (c *cryptoPAnTokenizer) tokenize(s serializer) (token, error) {
 }
 
 func (c *cryptoPAnTokenizer) tokenizeAndKeyID(s serializer) (token, *keyID, error) {
-	l.Printf("length of key: %d", len(c.key))
 	if len(c.key) == 0 {
 		return nil, nil, errNoKey
 	}
