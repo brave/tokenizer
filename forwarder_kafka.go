@@ -76,6 +76,7 @@ type kafkaForwarder struct {
 
 func newKafkaForwarder() forwarder {
 	return &kafkaForwarder{
+		out:  make(chan token),
 		done: make(chan empty),
 	}
 }
