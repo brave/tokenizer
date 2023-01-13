@@ -27,9 +27,9 @@ const (
 	aggregatorAddr   = "address"
 
 	defaultTokenizer  = tokenizerHmac
-	defaultAggregator = aggregatorSimple
-	defaultReceiver   = receiverStdin
 	defaultForwarder  = forwarderStdout
+	defaultReceiver   = receiverStdin
+	defaultAggregator = aggregatorSimple
 )
 
 var (
