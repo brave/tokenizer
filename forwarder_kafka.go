@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/segmentio/kafka-go"
@@ -230,6 +231,10 @@ func loadKafkaConfig() (*kafkaConfig, error) {
 	if !exists {
 		return nil, errEnvVarUnset
 	}
+	// If we're dealing with a comma-separated list of brokers, simply select
+	// the first one.
+	broker = strings.Split(broker, ",")[0]
+
 	topic, exists := os.LookupEnv(envKafkaTopic)
 	if !exists {
 		return nil, errEnvVarUnset
