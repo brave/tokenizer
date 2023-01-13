@@ -8,8 +8,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	uuid "github.com/satori/go.uuid"
 )
 
 const (
@@ -31,7 +29,7 @@ func makeReq(t *testing.T, s *httptest.Server, method, path string, h http.Heade
 }
 
 func TestGoodRequest(t *testing.T) {
-	walletID := uuid.NewV4()
+	walletID := newV4(t)
 	expected := clientRequest{
 		Addr:   net.ParseIP(ipv4Addr),
 		Wallet: walletID,
@@ -77,7 +75,7 @@ func TestBadWalletId(t *testing.T) {
 func TestNoFastlyHeader(t *testing.T) {
 	srv := httptest.NewServer(newRouter(make(chan serializer)))
 	defer srv.Close()
-	path := fmt.Sprintf("/v2/confirmation/token/%s", uuid.NewV4())
+	path := fmt.Sprintf("/v2/confirmation/token/%s", newV4(t))
 
 	resp := makeReq(t, srv, http.MethodGet, path, http.Header{})
 	if resp.StatusCode != http.StatusBadRequest {
@@ -94,7 +92,7 @@ func TestNoFastlyHeader(t *testing.T) {
 func TestBadFastlyAddr(t *testing.T) {
 	srv := httptest.NewServer(newRouter(make(chan serializer)))
 	defer srv.Close()
-	path := fmt.Sprintf("/v2/confirmation/token/%s", uuid.NewV4())
+	path := fmt.Sprintf("/v2/confirmation/token/%s", newV4(t))
 
 	resp := makeReq(t, srv, http.MethodGet, path, http.Header{fastlyClientIP: []string{"foo"}})
 	if resp.StatusCode != http.StatusBadRequest {

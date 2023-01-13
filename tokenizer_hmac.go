@@ -4,9 +4,8 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
-	"fmt"
 
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/google/uuid"
 )
 
 const (
@@ -45,7 +44,7 @@ func (h *hmacTokenizer) keyID() *keyID {
 	// using SHA-1 but let's be extra careful and hash the key using SHA-256
 	// before handing it over to the uuid package.
 	sum := sha256.Sum256(h.key)
-	return &keyID{UUID: uuid.NewV5(uuidNamespace, fmt.Sprintf("%x", sum[:]))}
+	return &keyID{UUID: uuid.NewSHA1(uuidNamespace, sum[:])}
 }
 
 func (h *hmacTokenizer) resetKey() error {

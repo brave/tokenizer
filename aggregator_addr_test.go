@@ -4,8 +4,6 @@ import (
 	"net"
 	"reflect"
 	"testing"
-
-	uuid "github.com/satori/go.uuid"
 )
 
 func TestAddrAggregatorProcess(t *testing.T) {
@@ -13,7 +11,7 @@ func TestAddrAggregatorProcess(t *testing.T) {
 	rawAddr2 := "2.3.4.5"
 	addr1 := net.ParseIP(rawAddr1)
 	addr2 := net.ParseIP(rawAddr2)
-	wallet1 := uuid.NewV4()
+	wallet1 := newV4(t)
 	tokenizer := newVerbatimTokenizer()
 	_ = tokenizer.resetKey()
 	a := newAddrAggregator()

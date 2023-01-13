@@ -4,10 +4,9 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"errors"
-	"fmt"
 
 	"github.com/Yawning/cryptopan"
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/google/uuid"
 )
 
 const (
@@ -62,7 +61,7 @@ func (c *cryptoPAnTokenizer) keyID() *keyID {
 	// using SHA-1 but let's be extra careful and hash the key using SHA-256
 	// before handing it over to the uuid package.
 	sum := sha256.Sum256(c.key)
-	return &keyID{UUID: uuid.NewV5(uuidNamespace, fmt.Sprintf("%x", sum[:]))}
+	return &keyID{UUID: uuid.NewSHA1(uuidNamespace, sum[:])}
 }
 
 func (c *cryptoPAnTokenizer) resetKey() error {

@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/google/uuid"
 )
 
 type ourString string

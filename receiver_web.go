@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/google/uuid"
 )
 
 const (
@@ -86,7 +86,7 @@ func getConfTokenHandler(inbox chan serializer) http.HandlerFunc {
 		// Make sure that the wallet ID is a valid UUID.
 		rawWalletID := chi.URLParam(r, "walletID")
 
-		walletID, err := uuid.FromString(rawWalletID)
+		walletID, err := uuid.Parse(rawWalletID)
 		if err != nil {
 			http.Error(w, errBadWalletFmt.Error(), http.StatusBadRequest)
 			return

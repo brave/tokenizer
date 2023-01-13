@@ -1,7 +1,7 @@
 package main
 
 import (
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/google/uuid"
 )
 
 // verbatimTokenizer implements a pseudo tokenizer that returns the same data
@@ -33,7 +33,11 @@ func (v *verbatimTokenizer) keyID() *keyID {
 }
 
 func (v *verbatimTokenizer) resetKey() error {
-	v.key = &keyID{UUID: uuid.NewV4()}
+	u, err := uuid.NewRandom()
+	if err != nil {
+		return err
+	}
+	v.key = &keyID{UUID: u}
 	return nil
 }
 

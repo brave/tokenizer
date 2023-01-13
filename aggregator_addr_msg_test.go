@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
-
-	uuid "github.com/satori/go.uuid"
 )
 
 func TestOurString(t *testing.T) {
@@ -18,8 +16,8 @@ func TestOurString(t *testing.T) {
 }
 
 func TestSerialization(t *testing.T) {
-	walletID := uuid.NewV4()
-	kID := keyID{UUID: uuid.NewV4()}
+	walletID := newV4(t)
+	kID := keyID{UUID: newV4(t)}
 	ipAddr := "1.1.1.1"
 	batch := WalletsByKeyID{
 		kID: AddrsByWallet{

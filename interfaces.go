@@ -17,7 +17,7 @@ package main
 import (
 	"time"
 
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/google/uuid"
 )
 
 type blob []byte

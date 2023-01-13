@@ -4,12 +4,22 @@ import (
 	"bytes"
 	"testing"
 	"time"
+
+	uuid "github.com/google/uuid"
 )
 
 type dummyByter struct{}
 
 func (d *dummyByter) bytes() []byte {
 	return []byte("foobar")
+}
+
+func newV4(t *testing.T) uuid.UUID {
+	u, err := uuid.NewRandom()
+	if err != nil {
+		t.Fatalf("Failed to get v4 UUID: %v", err)
+	}
+	return u
 }
 
 func TestStartStop(t *testing.T) {
