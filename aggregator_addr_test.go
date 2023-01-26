@@ -1,10 +1,54 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"net"
 	"reflect"
 	"testing"
+	"time"
+
+	uuid "github.com/google/uuid"
 )
+
+func TestCompileKafkaMsg(t *testing.T) {
+	keyID := keyID{UUID: uuid.New()}
+	walletID := uuid.New()
+	addr1, addr2 := "1.1.1.1", "2.2.2.2"
+	addrs := AddressSet{
+		addr1: empty{},
+		addr2: empty{},
+	}
+
+	msg, err := compileKafkaMsg(keyID, walletID, addrs)
+	if err != nil {
+		t.Fatalf("Expected no error but got: %v", err)
+	}
+
+	justification := `{\"keyid\":\"` + keyID.String() +
+		`\",\"addrs\":[\"` + addr1 + `\",\"` + addr2 + `\"]}`
+	expectedJSON := fmt.Sprintf("{\"wallet_id\":\"%s\","+
+		"\"service\":\"%s\","+
+		"\"signal\":\"%s\","+
+		"\"score\":0,"+
+		"\"justification\":\"%s\","+
+		"\"created_at\":\"%s\"}",
+		walletID,
+		schemaService,
+		schemaSignal,
+		justification,
+		time.Now().UTC().Format(time.RFC3339),
+	)
+
+	expectedMsg, err := avroEncode(ourCodec, []byte(expectedJSON))
+	if err != nil {
+		t.Fatalf("Failed to encode our JSON to Avro: %v", err)
+	}
+
+	if !bytes.Equal(msg, []byte(expectedMsg)) {
+		t.Fatalf("Expected\n%s\nbut got\n%s", expectedMsg, msg)
+	}
+}
 
 func TestAddrAggregatorProcess(t *testing.T) {
 	rawAddr1 := "1.2.3.4"

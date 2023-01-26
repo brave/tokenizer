@@ -4,6 +4,9 @@ github.com/Yawning/cryptopan
 # github.com/go-chi/chi/v5 v5.0.8
 ## explicit; go 1.14
 github.com/go-chi/chi/v5
+# github.com/golang/snappy v0.0.1
+## explicit
+github.com/golang/snappy
 # github.com/google/uuid v1.3.0
 ## explicit
 github.com/google/uuid
@@ -20,6 +23,9 @@ github.com/klauspost/compress/s2
 github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/linkedin/goavro/v2 v2.12.0
+## explicit; go 1.12
+github.com/linkedin/goavro/v2
 # github.com/pierrec/lz4/v4 v4.1.17
 ## explicit; go 1.14
 github.com/pierrec/lz4/v4

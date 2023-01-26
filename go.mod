@@ -6,10 +6,12 @@ require (
 	github.com/Yawning/cryptopan v0.0.0-20170504040949-65bca51288fe
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/google/uuid v1.3.0
+	github.com/linkedin/goavro/v2 v2.12.0
 	github.com/segmentio/kafka-go v0.4.38
 )
 
 require (
+	github.com/golang/snappy v0.0.1 // indirect
 	github.com/klauspost/compress v1.15.14 // indirect
 	github.com/pierrec/lz4/v4 v4.1.17 // indirect
 	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be // indirect

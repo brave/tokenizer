@@ -8,7 +8,43 @@ import (
 	"net"
 	"sync"
 	"time"
+
+	uuid "github.com/google/uuid"
+	"github.com/linkedin/goavro/v2"
 )
+
+const (
+	schemaService = "ADS"
+	schemaSignal  = "ANON_IP_ADDRS"
+)
+
+// The Avro codec that we use to encode data before sending it to Kafka.
+var ourCodec = func() *goavro.Codec {
+	codec, err := goavro.NewCodec(`{
+	"type": "record",
+	"name": "DefaultMessage",
+	"fields": [
+		{ "name": "wallet_id", "type": "string" },
+		{ "name": "service", "type": "string" },
+		{ "name": "signal", "type": "string" },
+		{ "name": "score", "type": "int" },
+		{ "name": "justification", "type": "string" },
+		{ "name": "created_at", "type": "string" }
+	]}`)
+	if err != nil {
+		l.Fatalf("Failed to create Avro codec: %v", err)
+	}
+	return codec
+}()
+
+type kafkaMessage struct {
+	WalletID      string `json:"wallet_id"`
+	Service       string `json:"service"`
+	Signal        string `json:"signal"`
+	Score         int32  `json:"score"`
+	Justification string `json:"justification"`
+	CreatedAt     string `json:"created_at"`
+}
 
 // addrAggregator implements an aggregator that keeps track of tokenized IP
 // addresses and their respective meta data.
@@ -163,6 +199,42 @@ func (a *addrAggregator) processRequest(req *clientRequest) error {
 	return nil
 }
 
+// compileKafkaMsg turns the given arguments into a byte slice that's ready to
+// be sent to our Kafka cluster.
+func compileKafkaMsg(keyID keyID, walletID uuid.UUID, addrs AddressSet) ([]byte, error) {
+	// We're abusing our schema's justification field by storing JSON in it.
+	// While not elegant, this lets us ingest anonymized IP addresses without
+	// modifying the schema.
+	justification := struct {
+		KeyID uuid.UUID `json:"keyid"`
+		Addrs []string  `json:"addrs"`
+	}{
+		KeyID: keyID.UUID,
+	}
+	for addr := range addrs {
+		justification.Addrs = append(justification.Addrs, addr)
+	}
+	jsonBytes, err := json.Marshal(justification)
+	if err != nil {
+		return nil, err
+	}
+
+	// Populate the remaining schema fields and turn it into JSON.
+	msg := kafkaMessage{
+		WalletID:      walletID.String(),
+		Service:       schemaService,
+		Signal:        schemaSignal,
+		Justification: string(jsonBytes),
+		CreatedAt:     time.Now().UTC().Format(time.RFC3339),
+	}
+	jsonBytes, err = json.Marshal(msg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal Kafka message: %w", err)
+	}
+
+	return avroEncode(ourCodec, jsonBytes)
+}
+
 // flush flushes the aggregator's addresses to the outbox.
 func (a *addrAggregator) flush() error {
 	a.Lock()
@@ -172,13 +244,19 @@ func (a *addrAggregator) flush() error {
 		return nil
 	}
 
-	jsonBytes, err := json.Marshal(a.addrs)
-	if err != nil {
-		return fmt.Errorf("failed to marshal addresses: %w", err)
+	for keyID, wallets := range a.addrs {
+		// Compile the anonymized IP addresses that we've seen for a given
+		// wallet ID.
+		for walletID, addrSet := range wallets {
+			kafkaMsg, err := compileKafkaMsg(keyID, walletID, addrSet)
+			if err != nil {
+				return err
+			}
+			a.outbox <- token(kafkaMsg)
+		}
 	}
-	a.outbox <- token(jsonBytes)
-
-	l.Printf("Forwarded %d addresses.", len(a.addrs))
+	l.Printf("Forwarded %d address(es).", len(a.addrs))
 	a.addrs = make(WalletsByKeyID)
+
 	return nil
 }

@@ -133,6 +133,7 @@ func (k *kafkaForwarder) send(t token) error {
 	if err != nil {
 		return fmt.Errorf("failed to forward blob to Kafka: %w", err)
 	}
+	l.Printf("Sent %d-byte token to Kafka.", len(t))
 	return nil
 }
 
