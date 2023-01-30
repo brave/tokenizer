@@ -28,7 +28,7 @@ func (s *simpleAggregator) connect(inbox chan serializer, outbox chan token) {
 
 func (s *simpleAggregator) start() {
 	if err := s.t.resetKey(); err != nil {
-		l.Printf("Failed to reset key of tokenizer: %v", err)
+		l.Fatalf("Failed to reset tokenizer key: %v", err)
 	}
 
 	go func() {

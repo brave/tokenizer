@@ -99,7 +99,7 @@ func (a *addrAggregator) connect(inbox chan serializer, outbox chan token) {
 // start starts the address aggregator.
 func (a *addrAggregator) start() {
 	if err := a.tokenizer.resetKey(); err != nil {
-		l.Printf("Failed to reset key of tokenizer: %v", err)
+		l.Fatalf("Failed to reset tokenizer key: %v", err)
 	}
 	a.wg.Add(1)
 
@@ -121,7 +121,7 @@ func (a *addrAggregator) start() {
 				}
 			case <-keyTicker.C:
 				if err := a.tokenizer.resetKey(); err != nil {
-					l.Printf("Failed to reset tokenizer key: %v", err)
+					l.Fatalf("Failed to reset tokenizer key: %v", err)
 				}
 			case req := <-a.inbox:
 				switch v := req.(type) {
