@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"errors"
+	"sync"
 
 	"github.com/Yawning/cryptopan"
 	uuid "github.com/google/uuid"
@@ -22,6 +23,7 @@ var (
 // cryptoPAnTokenizer implements a tokenizer that uses Crypto-PAn to anonymize
 // IP addresses.
 type cryptoPAnTokenizer struct {
+	sync.RWMutex
 	cryptoPAn *cryptopan.Cryptopan
 	key       []byte
 }
@@ -35,6 +37,9 @@ func (c *cryptoPAnTokenizer) isBlobSupported(b []byte) bool {
 }
 
 func (c *cryptoPAnTokenizer) tokenize(s serializer) (token, error) {
+	c.RLock()
+	defer c.RUnlock()
+
 	if len(c.key) == 0 {
 		return nil, errNoKey
 	}
@@ -46,6 +51,9 @@ func (c *cryptoPAnTokenizer) tokenize(s serializer) (token, error) {
 }
 
 func (c *cryptoPAnTokenizer) tokenizeAndKeyID(s serializer) (token, *keyID, error) {
+	c.RLock()
+	defer c.RUnlock()
+
 	if len(c.key) == 0 {
 		return nil, nil, errNoKey
 	}
@@ -57,6 +65,9 @@ func (c *cryptoPAnTokenizer) tokenizeAndKeyID(s serializer) (token, *keyID, erro
 }
 
 func (c *cryptoPAnTokenizer) keyID() *keyID {
+	c.RLock()
+	defer c.RUnlock()
+
 	// A v5 UUID is supposed to hash the given name (in our case: the key)
 	// using SHA-1 but let's be extra careful and hash the key using SHA-256
 	// before handing it over to the uuid package.
@@ -65,6 +76,9 @@ func (c *cryptoPAnTokenizer) keyID() *keyID {
 }
 
 func (c *cryptoPAnTokenizer) resetKey() error {
+	c.Lock()
+	defer c.Unlock()
+
 	var err error
 	c.key = make([]byte, cryptopan.Size)
 	if _, err = rand.Read(c.key); err != nil {

@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"sync"
 
 	uuid "github.com/google/uuid"
 )
@@ -14,6 +15,7 @@ const (
 
 // hmacTokenizer implements a tokenizer that uses HMAC-SHA256.
 type hmacTokenizer struct {
+	sync.RWMutex
 	key []byte
 }
 
@@ -22,6 +24,9 @@ func newHmacTokenizer() tokenizer {
 }
 
 func (h *hmacTokenizer) tokenize(s serializer) (token, error) {
+	h.RLock()
+	defer h.RUnlock()
+
 	if len(h.key) == 0 {
 		return nil, errNoKey
 	}
@@ -31,6 +36,9 @@ func (h *hmacTokenizer) tokenize(s serializer) (token, error) {
 }
 
 func (h *hmacTokenizer) tokenizeAndKeyID(s serializer) (token, *keyID, error) {
+	h.RLock()
+	defer h.RUnlock()
+
 	if len(h.key) == 0 {
 		return nil, nil, errNoKey
 	}
@@ -40,6 +48,9 @@ func (h *hmacTokenizer) tokenizeAndKeyID(s serializer) (token, *keyID, error) {
 }
 
 func (h *hmacTokenizer) keyID() *keyID {
+	h.RLock()
+	defer h.RUnlock()
+
 	// A v5 UUID is supposed to hash the given name (in our case: the key)
 	// using SHA-1 but let's be extra careful and hash the key using SHA-256
 	// before handing it over to the uuid package.
@@ -48,6 +59,9 @@ func (h *hmacTokenizer) keyID() *keyID {
 }
 
 func (h *hmacTokenizer) resetKey() error {
+	h.Lock()
+	defer h.Unlock()
+
 	h.key = make([]byte, hmacKeySize)
 	_, err := rand.Read(h.key)
 	return err
