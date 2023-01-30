@@ -54,7 +54,6 @@ func newWebReceiver() receiver {
 
 func newRouter(inbox chan serializer) *chi.Mux {
 	r := chi.NewRouter()
-	r.Get("/v1/confirmation/token/{walletID}", getConfTokenHandler(inbox))
 	r.Get("/v2/confirmation/token/{walletID}", getConfTokenHandler(inbox))
 	return r
 }
