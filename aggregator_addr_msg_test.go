@@ -68,9 +68,4 @@ func TestSerialization(t *testing.T) {
 	if string(newSerialized) != expected {
 		t.Fatalf("expected %q but got %q", expected, newSerialized)
 	}
-
-	// Finally, test our string representations.
-	//if batch.String() != newBatch.String() {
-	//	t.Fatalf("expected string representation %q but got %q", batch, newBatch)
-	//	}
 }
