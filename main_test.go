@@ -1,27 +1,58 @@
 package main
 
 import (
-	"crypto/rand"
-	"net"
+	"reflect"
+	"strings"
 	"testing"
-
-	"github.com/Yawning/cryptopan"
+	"time"
 )
 
-func BenchmarkAnonymizingPerformance(b *testing.B) {
-	var addr net.IP
-	var buf = make([]byte, cryptopan.Size)
-	_, err := rand.Read(buf)
-	if err != nil {
-		b.Fatal(err)
+func TestParseFlags(t *testing.T) {
+	// This test was inspired by Eli Bendersky's 2020 blog post:
+	// https://eli.thegreenplace.net/2020/testing-flag-parsing-in-go-programs/
+	tests := []struct {
+		args []string
+		conf *config
+	}{
+		{
+			[]string{"-forward-interval", "1", "-key-expiry", "2", "-port", "80"},
+			&config{
+				fwdInterval: time.Second,
+				keyExpiry:   time.Second * 2,
+				port:        80,
+			},
+		},
 	}
-	ctx, err := cryptopan.New(buf)
-	if err != nil {
-		b.Fatal(err)
+
+	for _, test := range tests {
+		t.Run(
+			strings.Join(test.args, " "),
+			func(t *testing.T) {
+				_, conf, err := parseFlags("tkzr", test.args)
+				if err != nil {
+					t.Fatalf("Got unexpected error: %v", err)
+				}
+				if !reflect.DeepEqual(conf, test.conf) {
+					t.Fatalf("Expected conf %+v but got %+v.", test.conf, conf)
+				}
+			},
+		)
 	}
-	addr = net.ParseIP("1.1.1.1")
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = ctx.Anonymize(addr)
-	}
+}
+
+func TestBootstrap(t *testing.T) {
+	done := make(chan empty)
+	go func() {
+		bootstrap(
+			&config{},
+			&components{
+				a: newSimpleAggregator(),
+				r: newStdinReceiver(),
+				f: newStdoutForwarder(),
+				t: newVerbatimTokenizer(),
+			},
+			done,
+		)
+	}()
+	close(done)
 }
