@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -13,6 +14,27 @@ func TestOurString(t *testing.T) {
 	if !bytes.Equal(o.bytes(), []byte(s)) {
 		t.Fatalf("Expected %s but got %s.", []byte(s), o.bytes())
 	}
+}
+
+func TestSorted(t *testing.T) {
+	a1 := "1.1.1.1"
+	a2 := "2.2.2.2"
+	a3 := "3.3.3.3"
+	a4 := "4.4.4.4"
+	a5 := "5.5.5.5"
+
+	s := AddressSet{
+		a5: empty{},
+		a2: empty{},
+		a4: empty{},
+		a1: empty{},
+		a3: empty{},
+	}
+
+	assertEqual(t,
+		strings.Join(s.sorted(), ""),
+		strings.Join([]string{a1, a2, a3, a4, a5}, ""),
+	)
 }
 
 func TestSerialization(t *testing.T) {

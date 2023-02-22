@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"sort"
 
 	uuid "github.com/google/uuid"
 )
@@ -26,6 +27,16 @@ type AddrsByWallet map[uuid.UUID]AddressSet
 // represent data collection epochs: whenever the key ID rotates, a new epoch
 // begins, and our collection of wallet-to-address records begins afresh.
 type WalletsByKeyID map[keyID]AddrsByWallet
+
+// sorted returns the address set's addresses as a sorted string slice.
+func (s AddressSet) sorted() []string {
+	addrs := []string{}
+	for a := range s {
+		addrs = append(addrs, a)
+	}
+	sort.Strings(addrs)
+	return addrs
+}
 
 // numWallets returns the total number of wallets that are currently in the
 // struct.  Note that this may contain duplicate wallets, i.e., wallets that

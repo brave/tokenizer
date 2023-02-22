@@ -216,9 +216,8 @@ func compileKafkaMsg(keyID keyID, walletID uuid.UUID, addrs AddressSet) ([]byte,
 	}{
 		KeyID: keyID.UUID,
 	}
-	for addr := range addrs {
-		justification.Addrs = append(justification.Addrs, addr)
-	}
+
+	justification.Addrs = append(justification.Addrs, addrs.sorted()...)
 	jsonBytes, err := json.Marshal(justification)
 	if err != nil {
 		return nil, err

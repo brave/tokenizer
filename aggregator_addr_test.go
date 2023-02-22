@@ -14,9 +14,10 @@ import (
 func TestCompileKafkaMsg(t *testing.T) {
 	keyID := keyID{UUID: uuid.New()}
 	walletID := uuid.New()
-	addr1, addr2 := "1.1.1.1", "2.2.2.2"
+	addr1, addr2, addr3 := "1.1.1.1", "2.2.2.2", "3.3.3.3"
 	addrs := AddressSet{
 		addr1: empty{},
+		addr3: empty{},
 		addr2: empty{},
 	}
 
@@ -26,7 +27,7 @@ func TestCompileKafkaMsg(t *testing.T) {
 	}
 
 	justification := `{\"keyid\":\"` + keyID.String() +
-		`\",\"addrs\":[\"` + addr1 + `\",\"` + addr2 + `\"]}`
+		`\",\"addrs\":[\"` + addr1 + `\",\"` + addr2 + `\",\"` + addr3 + `\"]}`
 	expectedJSON := fmt.Sprintf("{\"wallet_id\":\"%s\","+
 		"\"service\":\"%s\","+
 		"\"signal\":\"%s\","+
