@@ -15,6 +15,7 @@ const (
 	// https://developer.fastly.com/reference/http/http-headers/Fastly-Client-IP/
 	// (retrieved on 2021-11-29)
 	fastlyClientIP = "Fastly-Client-IP"
+	indexPage      = "This request is handled by tokenizer."
 )
 
 var (
@@ -55,6 +56,7 @@ func newWebReceiver() receiver {
 func newRouter(inbox chan serializer) *chi.Mux {
 	r := chi.NewRouter()
 	r.Get("/v2/confirmation/token/{walletID}", getConfTokenHandler(inbox))
+	r.Get("/", indexHandler)
 	return r
 }
 
@@ -78,6 +80,10 @@ func (w *webReceiver) start() {
 
 func (w *webReceiver) stop() {
 	close(w.done)
+}
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, indexPage)
 }
 
 func getConfTokenHandler(inbox chan serializer) http.HandlerFunc {
