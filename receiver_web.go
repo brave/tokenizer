@@ -70,6 +70,7 @@ func (w *webReceiver) inbox() chan serializer {
 
 func (w *webReceiver) start() {
 	go func() {
+		l.Printf("Starting Web server at :%d.", w.port)
 		srv := &http.Server{
 			Addr:    fmt.Sprintf(":%d", w.port),
 			Handler: w.router,
