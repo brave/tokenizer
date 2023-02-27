@@ -28,6 +28,21 @@ func makeReq(t *testing.T, s *httptest.Server, method, path string, h http.Heade
 	return resp
 }
 
+func TestIndexRequest(t *testing.T) {
+	inbox := make(chan serializer, 10) // We're using a buffered channel to prevent a deadlock.
+	srv := httptest.NewServer(newRouter(inbox))
+	defer srv.Close()
+
+	resp := makeReq(t, srv, http.MethodGet, "/", nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected HTTP status code %d but got %d.", http.StatusOK, resp.StatusCode)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	if strings.TrimSpace(string(body)) != indexPage {
+		t.Fatalf("Expected body %q but got %q.", indexPage, string(body))
+	}
+}
+
 func TestGoodRequest(t *testing.T) {
 	walletID := newV4(t)
 	expected := clientRequest{
