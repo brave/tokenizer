@@ -77,5 +77,5 @@ github.com/segmentio/kafka-go/protocol/txnoffsetcommit
 github.com/segmentio/kafka-go/sasl
 # golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
 ## explicit; go 1.17
-# golang.org/x/net v0.0.0-20220926192436-02166a98028e
+# golang.org/x/net v0.7.0
 ## explicit; go 1.17
