@@ -84,7 +84,7 @@ func (w *webReceiver) stop() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, indexPage)
+	fmt.Fprintln(w, indexPage)
 }
 
 func getConfTokenHandler(inbox chan serializer) http.HandlerFunc {

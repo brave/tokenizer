@@ -38,7 +38,7 @@ func TestIndexRequest(t *testing.T) {
 		t.Fatalf("Expected HTTP status code %d but got %d.", http.StatusOK, resp.StatusCode)
 	}
 	body, _ := io.ReadAll(resp.Body)
-	if string(body) != indexPage {
+	if strings.TrimSpace(string(body)) != indexPage {
 		t.Fatalf("Expected body %q but got %q.", indexPage, string(body))
 	}
 }
