@@ -157,6 +157,11 @@ func (a *addrAggregator) stop() {
 func (a *addrAggregator) processRequest(req *clientRequest) error {
 	a.Lock()
 	defer a.Unlock()
+	// Update metrics when we're done processing the request.
+	defer func() {
+		m.numWallets.Set(float64(a.addrs.numWallets()))
+		m.numAddrs.Set(float64(a.addrs.numAddrs()))
+	}()
 
 	rawToken, keyID, err := a.tokenizer.tokenizeAndKeyID(req)
 	if err != nil {

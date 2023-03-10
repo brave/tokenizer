@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -121,6 +122,7 @@ func (k *kafkaForwarder) send(t token) error {
 	defer k.Unlock()
 
 	if len(t) == 0 {
+		m.numForwarded.With(prometheus.Labels{outcome: failBecause(errNothingToFwd)}).Inc()
 		return errNothingToFwd
 	}
 
@@ -131,9 +133,12 @@ func (k *kafkaForwarder) send(t token) error {
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("failed to forward blob to Kafka: %w", err)
+		err := fmt.Errorf("failed to forward blob to Kafka: %w", err)
+		m.numForwarded.With(prometheus.Labels{outcome: failBecause(err)}).Inc()
+		return err
 	}
 	l.Printf("Sent %d-byte token to Kafka.", len(t))
+	m.numForwarded.With(prometheus.Labels{outcome: success}).Inc()
 	return nil
 }
 

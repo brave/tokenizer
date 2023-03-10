@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	uuid "github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -91,26 +92,34 @@ func getConfTokenHandler(inbox chan serializer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Make sure that the wallet ID is a valid UUID.
 		rawWalletID := chi.URLParam(r, "walletID")
+		errAndReport := func(body string, code int) {
+			http.Error(w, body, code)
+			m.webResponses.With(prometheus.Labels{
+				httpCode: fmt.Sprintf("%d", code),
+				httpBody: body,
+			}).Inc()
+		}
 
 		walletID, err := uuid.Parse(rawWalletID)
 		if err != nil {
-			http.Error(w, errBadWalletFmt.Error(), http.StatusBadRequest)
+			errAndReport(errBadWalletFmt.Error(), http.StatusBadRequest)
 			return
 		}
 
 		rawAddr := r.Header.Get(fastlyClientIP)
 		if rawAddr == "" {
-			http.Error(w, errNoFastlyHeader.Error(), http.StatusBadRequest)
+			errAndReport(errNoFastlyHeader.Error(), http.StatusBadRequest)
 			return
 		}
 
 		// Fetch the client's IP address from Fastly's proprietary header.
 		addr := net.ParseIP(rawAddr)
 		if addr == nil {
-			http.Error(w, errBadFastlyAddrFormat.Error(), http.StatusBadRequest)
+			errAndReport(errBadFastlyAddrFormat.Error(), http.StatusBadRequest)
 			return
 		}
 
+		m.webResponses.With(prometheus.Labels{httpCode: "200", httpBody: ""}).Inc()
 		inbox <- &clientRequest{Addr: addr, Wallet: walletID}
 		l.Printf("Sent received data to aggregator.")
 	}

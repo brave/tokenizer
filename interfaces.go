@@ -31,10 +31,12 @@ func (b blob) bytes() []byte {
 // structure.  Considering that we have few and simple components for now,
 // that's acceptable.
 type config struct {
-	kafkaConfig *kafkaConfig
-	fwdInterval time.Duration
-	keyExpiry   time.Duration
-	port        uint16
+	kafkaConfig      *kafkaConfig
+	fwdInterval      time.Duration
+	keyExpiry        time.Duration
+	port             uint16
+	prometheusPort   uint16
+	exposePrometheus bool
 }
 
 type components struct {

@@ -7,6 +7,13 @@ import (
 	"time"
 )
 
+func assertEqual(t *testing.T, is, should interface{}) {
+	t.Helper()
+	if should != is {
+		t.Fatalf("Expected value %v but got %v.", should, is)
+	}
+}
+
 func TestParseFlags(t *testing.T) {
 	// This test was inspired by Eli Bendersky's 2020 blog post:
 	// https://eli.thegreenplace.net/2020/testing-flag-parsing-in-go-programs/
@@ -17,9 +24,10 @@ func TestParseFlags(t *testing.T) {
 		{
 			[]string{"-forward-interval", "1", "-key-expiry", "2", "-port", "80"},
 			&config{
-				fwdInterval: time.Second,
-				keyExpiry:   time.Second * 2,
-				port:        80,
+				fwdInterval:    time.Second,
+				keyExpiry:      time.Second * 2,
+				port:           80,
+				prometheusPort: 8081,
 			},
 		},
 	}
