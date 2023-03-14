@@ -1,6 +1,6 @@
 module github.com/brave/tkzr
 
-go 1.19
+go 1.20
 
 require (
 	github.com/Yawning/cryptopan v0.0.0-20170504040949-65bca51288fe
