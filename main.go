@@ -135,6 +135,9 @@ func parseFlags(progname string, args []string) (*components, *config, error) {
 	if prometheusPort < 1 || prometheusPort > math.MaxUint16 {
 		return nil, nil, fmt.Errorf("Prometheus port must be in interval [1, %d]", math.MaxUint16)
 	}
+	if exposePrometheus && receiver == receiverWeb && prometheusPort == port {
+		return nil, nil, errors.New("Prometheus port and Web receiver port must not be the same")
+	}
 	c.prometheusPort = uint16(prometheusPort)
 	c.exposePrometheus = exposePrometheus
 
