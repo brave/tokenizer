@@ -171,7 +171,12 @@ func parseFlags(progname string, args []string) (*components, *config, error) {
 }
 
 // exposeMetrics starts an HTTP server at the given port.  The server exposes
-// an endpoint for Prometheus metrics.
+// an endpoint for Prometheus metrics.  Note that tokenizer is meant to be run
+// inside a Kubernetes pod.  Access to this port is therefore handled by a
+// Kubernetes service.  If we are configured to expose Prometheus metrics *and*
+// use the Web receiver, we need two Kubernetes services: one that is publicly
+// accessible (the Web receiver) and one that's private (the Prometheus
+// metrics).
 func exposeMetrics(port uint16) {
 	http.Handle("/metrics", promhttp.Handler())
 	l.Printf("Exposing Prometheus metrics at :%d.", port)
