@@ -42,8 +42,8 @@ func (w WalletsByKeyID) numWallets() int {
 	return total
 }
 
-// numAddrs returns the total number of addresses that are currently in the
-// struct.
+// numAddrs returns the total number of addresses (which may be different from
+// the number of unique addresses!) that are currently in the struct.
 func (w WalletsByKeyID) numAddrs() int {
 	if len(w) == 0 {
 		return 0
