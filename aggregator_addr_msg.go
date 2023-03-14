@@ -27,6 +27,40 @@ type AddrsByWallet map[uuid.UUID]AddressSet
 // begins, and our collection of wallet-to-address records begins afresh.
 type WalletsByKeyID map[keyID]AddrsByWallet
 
+// numWallets returns the total number of wallets that are currently in the
+// struct.  Note that this may contain duplicate wallets, i.e., wallets that
+// are present for key ID x *and* for key ID y.
+func (w WalletsByKeyID) numWallets() int {
+	if len(w) == 0 {
+		return 0
+	}
+
+	total := 0
+	for _, addrsByWallet := range w {
+		total += len(addrsByWallet)
+	}
+	return total
+}
+
+// numAddrs returns the total number of addresses (which may be different from
+// the number of unique addresses!) that are currently in the struct.
+func (w WalletsByKeyID) numAddrs() int {
+	if len(w) == 0 {
+		return 0
+	}
+
+	total := 0
+	for _, addrsByWallet := range w {
+		if len(addrsByWallet) == 0 {
+			continue
+		}
+		for _, addrs := range addrsByWallet {
+			total += len(addrs)
+		}
+	}
+	return total
+}
+
 // MarshalJSON marshals the given key ID-to-wallets map and turns it into the
 // following JSON:
 //

@@ -69,3 +69,31 @@ func TestSerialization(t *testing.T) {
 		t.Fatalf("expected %q but got %q", expected, newSerialized)
 	}
 }
+
+func TestNumWalletsAndAddrs(t *testing.T) {
+	w := WalletsByKeyID{
+		keyID{newV4(t)}: AddrsByWallet{
+			newV4(t): AddressSet{
+				"1.1.1.1": empty{},
+			},
+		},
+		keyID{newV4(t)}: AddrsByWallet{
+			newV4(t): AddressSet{
+				"1.1.1.1": empty{},
+			},
+			newV4(t): AddressSet{
+				"2.2.2.2": empty{},
+				"3.3.3.3": empty{},
+			},
+			newV4(t): AddressSet{
+				"3.3.3.3": empty{},
+				"4.4.4.4": empty{},
+				"5.5.5.5": empty{},
+			},
+			newV4(t): AddressSet{},
+		},
+	}
+
+	assertEqual(t, w.numWallets(), 5)
+	assertEqual(t, w.numAddrs(), 7)
+}

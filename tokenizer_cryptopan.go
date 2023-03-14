@@ -8,6 +8,7 @@ import (
 
 	"github.com/Yawning/cryptopan"
 	uuid "github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -41,12 +42,15 @@ func (c *cryptoPAnTokenizer) tokenize(s serializer) (token, error) {
 	defer c.RUnlock()
 
 	if len(c.key) == 0 {
+		m.numTokenized.With(prometheus.Labels{outcome: failBecause(errNoKey)}).Inc()
 		return nil, errNoKey
 	}
 	blob := s.bytes()
 	if !c.isBlobSupported(blob) {
+		m.numTokenized.With(prometheus.Labels{outcome: failBecause(errBadBlobLen)}).Inc()
 		return nil, errBadBlobLen
 	}
+	m.numTokenized.With(prometheus.Labels{outcome: success}).Inc()
 	return token(c.cryptoPAn.Anonymize(blob)), nil
 }
 
@@ -55,12 +59,15 @@ func (c *cryptoPAnTokenizer) tokenizeAndKeyID(s serializer) (token, *keyID, erro
 	defer c.RUnlock()
 
 	if len(c.key) == 0 {
+		m.numTokenized.With(prometheus.Labels{outcome: failBecause(errNoKey)}).Inc()
 		return nil, nil, errNoKey
 	}
 	blob := s.bytes()
 	if !c.isBlobSupported(blob) {
+		m.numTokenized.With(prometheus.Labels{outcome: failBecause(errBadBlobLen)}).Inc()
 		return nil, nil, errBadBlobLen
 	}
+	m.numTokenized.With(prometheus.Labels{outcome: success}).Inc()
 	return token(c.cryptoPAn.Anonymize(blob)), c.keyID(), nil
 }
 

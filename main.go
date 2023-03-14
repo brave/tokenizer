@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"net/http"
 	"os"
 	"time"
 
 	uuid "github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
@@ -54,6 +56,7 @@ var (
 		tokenizerCryptoPAn: newCryptoPAnTokenizer,
 		tokenizerVerbatim:  newVerbatimTokenizer,
 	}
+	m = metrics{}
 )
 
 func bootstrap(c *config, comp *components, done chan empty) {
@@ -81,11 +84,16 @@ func bootstrap(c *config, comp *components, done chan empty) {
 
 func parseFlags(progname string, args []string) (*components, *config, error) {
 	var err error
+	var exposePrometheus bool
 	var tokenizer, forwarder, aggregator, receiver string
-	var rawFwdInterval, rawKeyExpiry, port int
+	var rawFwdInterval, rawKeyExpiry, port, prometheusPort int
 
 	fs := flag.NewFlagSet(progname, flag.ContinueOnError)
 
+	fs.BoolVar(&exposePrometheus, "expose-prometheus", false,
+		"Expose Prometheus metrics.")
+	fs.IntVar(&prometheusPort, "prometheus-port", 9090,
+		"Make Prometheus metrics available at http://0.0.0.0:<port>/metrics.")
 	fs.IntVar(&rawFwdInterval, "forward-interval", 60*5,
 		"Number of seconds after which data is forwarded to backend.")
 	fs.IntVar(&rawKeyExpiry, "key-expiry", 60*60*24*30*6,
@@ -124,6 +132,14 @@ func parseFlags(progname string, args []string) (*components, *config, error) {
 			return nil, nil, fmt.Errorf("failed to parse Kafka config: %w", err)
 		}
 	}
+	if prometheusPort < 1 || prometheusPort > math.MaxUint16 {
+		return nil, nil, fmt.Errorf("Prometheus port must be in interval [1, %d]", math.MaxUint16)
+	}
+	if exposePrometheus && receiver == receiverWeb && prometheusPort == port {
+		return nil, nil, errors.New("Prometheus port and Web receiver port must not be the same")
+	}
+	c.prometheusPort = uint16(prometheusPort)
+	c.exposePrometheus = exposePrometheus
 
 	// Initialize the chosen receiver, tokenizer, aggregator, and forwarder.
 	newTokenizer, exists := ourTokenizers[tokenizer]
@@ -154,6 +170,19 @@ func parseFlags(progname string, args []string) (*components, *config, error) {
 	return comp, c, nil
 }
 
+// exposeMetrics starts an HTTP server at the given port.  The server exposes
+// an endpoint for Prometheus metrics.  Note that tokenizer is meant to be run
+// inside a Kubernetes pod.  Access to this port is therefore handled by a
+// Kubernetes service.  If we are configured to expose Prometheus metrics *and*
+// use the Web receiver, we need two Kubernetes services: one that is publicly
+// accessible (the Web receiver) and one that's private (the Prometheus
+// metrics).
+func exposeMetrics(port uint16) {
+	http.Handle("/metrics", promhttp.Handler())
+	l.Printf("Exposing Prometheus metrics at :%d.", port)
+	l.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+}
+
 func main() {
 	comp, conf, err := parseFlags(os.Args[0], os.Args[1:])
 	if err != nil {
@@ -161,6 +190,9 @@ func main() {
 			os.Exit(1)
 		}
 		l.Fatal(err)
+	}
+	if conf.exposePrometheus {
+		go exposeMetrics(conf.prometheusPort)
 	}
 	bootstrap(conf, comp, make(chan empty))
 }

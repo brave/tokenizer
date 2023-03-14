@@ -1,4 +1,4 @@
-FROM golang:1.19 as builder
+FROM public.ecr.aws/docker/library/golang:1.20 as builder
 
 WORKDIR /src/
 COPY *.go go.mod go.sum ./
