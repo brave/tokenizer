@@ -92,7 +92,7 @@ func parseFlags(progname string, args []string) (*components, *config, error) {
 
 	fs.BoolVar(&exposePrometheus, "expose-prometheus", false,
 		"Expose Prometheus metrics.")
-	fs.IntVar(&prometheusPort, "prometheus-port", 8081,
+	fs.IntVar(&prometheusPort, "prometheus-port", 9090,
 		"Make Prometheus metrics available at http://0.0.0.0:<port>/metrics.")
 	fs.IntVar(&rawFwdInterval, "forward-interval", 60*5,
 		"Number of seconds after which data is forwarded to backend.")

@@ -27,7 +27,7 @@ func TestParseFlags(t *testing.T) {
 				fwdInterval:    time.Second,
 				keyExpiry:      time.Second * 2,
 				port:           80,
-				prometheusPort: 8081,
+				prometheusPort: 9090,
 			},
 		},
 	}
