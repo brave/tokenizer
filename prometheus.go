@@ -13,7 +13,6 @@ const (
 	httpBody = "body"
 	outcome  = "outcome"
 	success  = "success"
-	fail     = "fail"
 
 	// Our Prometheus namespace.
 	ns = "tokenizer"
