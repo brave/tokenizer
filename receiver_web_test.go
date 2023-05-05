@@ -120,3 +120,17 @@ func TestBadFastlyAddr(t *testing.T) {
 		t.Fatalf("Expected error %q but got %q.", expected, received)
 	}
 }
+
+func TestIsValidApiVersion(t *testing.T) {
+	assertEqual(t, isValidApiVersion("1"), true)
+	assertEqual(t, isValidApiVersion("2"), true)
+	assertEqual(t, isValidApiVersion("3"), true)
+	assertEqual(t, isValidApiVersion("4"), true)
+
+	assertEqual(t, isValidApiVersion("0"), false)
+	assertEqual(t, isValidApiVersion("5"), false)
+	assertEqual(t, isValidApiVersion("99"), false)
+	assertEqual(t, isValidApiVersion("-1"), false)
+	assertEqual(t, isValidApiVersion("1.1"), false)
+	assertEqual(t, isValidApiVersion("foo"), false)
+}

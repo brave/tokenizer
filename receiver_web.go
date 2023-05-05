@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	uuid "github.com/google/uuid"
@@ -20,6 +21,7 @@ const (
 )
 
 var (
+	errBadApiVersion       = errors.New("invalid ads API version")
 	errBadWalletFmt        = errors.New("wallet ID has bad format")
 	errNoFastlyHeader      = fmt.Errorf("found no %q header", fastlyClientIP)
 	errBadFastlyAddrFormat = fmt.Errorf("bad IP address format in %q header", fastlyClientIP)
@@ -54,9 +56,21 @@ func newWebReceiver() receiver {
 	return w
 }
 
+// isValidApiVersion returns true if we're dealing with ads API version 1, 2,
+// 3, or 4.  As of 2023-05-05, version 1 and 2 are outdated, 3 is live, and 4
+// is not yet in the works.  For the sake of being future-proof, we do however
+// accept version 4 already.
+func isValidApiVersion(v string) bool {
+	num, err := strconv.ParseUint(v, 10, 0)
+	if err != nil {
+		return false
+	}
+	return num >= 1 && num <= 4
+}
+
 func newRouter(inbox chan serializer) *chi.Mux {
 	r := chi.NewRouter()
-	r.Get("/v2/confirmation/token/{walletID}", getConfTokenHandler(inbox))
+	r.Get("/v{version}/confirmation/token/{walletID}", getConfTokenHandler(inbox))
 	r.Get("/", indexHandler)
 	return r
 }
@@ -90,8 +104,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 func getConfTokenHandler(inbox chan serializer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Make sure that the wallet ID is a valid UUID.
-		rawWalletID := chi.URLParam(r, "walletID")
 		errAndReport := func(body string, code int) {
 			http.Error(w, body, code)
 			m.webResponses.With(prometheus.Labels{
@@ -99,6 +111,13 @@ func getConfTokenHandler(inbox chan serializer) http.HandlerFunc {
 				httpBody: body,
 			}).Inc()
 		}
+
+		if !isValidApiVersion(chi.URLParam(r, "version")) {
+			errAndReport(errBadApiVersion.Error(), http.StatusBadRequest)
+			return
+		}
+		// Make sure that the wallet ID is a valid UUID.
+		rawWalletID := chi.URLParam(r, "walletID")
 
 		walletID, err := uuid.Parse(rawWalletID)
 		if err != nil {
