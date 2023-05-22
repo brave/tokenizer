@@ -12,4 +12,7 @@ FROM scratch
 COPY --from=builder /src/tkzr /bin/
 EXPOSE 8080
 
+# Switch to the UID that's typically reserved for the user "nobody".
+USER 65534
+
 CMD ["/bin/tkzr"]
