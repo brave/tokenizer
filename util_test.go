@@ -43,3 +43,7 @@ func TestAvroEncode(t *testing.T) {
 		t.Fatalf("Expected\n%v\nbut got\n%v", origStruct, decodedStruct)
 	}
 }
+
+func TestMaxSoftFdLimit(t *testing.T) {
+	assertEqual(t, maxSoftFdLimit(), nil)
+}

@@ -10,12 +10,15 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/segmentio/kafka-go"
 )
 
 const (
+	defaultBatchPeriod = time.Second * 30
+	defaultBatchSize   = 1000
 	envKafkaClientCert = "KAFKA_CLIENT_CERT"
 	envKafkaClientKey  = "KAFKA_CLIENT_KEY"
 	envKafkaInterCert  = "KAFKA_INTERMEDIATE_CERT"
@@ -59,7 +62,16 @@ var (
 	errNothingToFwd = errors.New("nothing to forward")
 )
 
+// kafkaWriter defines an interface that's implemented by kafka-go's
+// kafka.Writer (which we use in production) and by dummyKafkaWriter (which we
+// use for tests).
+type kafkaWriter interface {
+	WriteMessages(ctx context.Context, msgs ...kafka.Message) error
+}
+
 type kafkaConfig struct {
+	batchPeriod time.Duration
+	batchSize   int
 	clientCert  *tls.Certificate
 	serverCerts *x509.CertPool
 	broker      net.Addr
@@ -70,16 +82,20 @@ type kafkaConfig struct {
 // broker.
 type kafkaForwarder struct {
 	sync.RWMutex
-	conf   *kafkaConfig
-	writer *kafka.Writer
-	out    chan token
-	done   chan empty
+	msgBatch  []kafka.Message
+	lastBatch time.Time
+	conf      *kafkaConfig
+	writer    kafkaWriter
+	out       chan token
+	done      chan empty
 }
 
 func newKafkaForwarder() forwarder {
 	return &kafkaForwarder{
-		out:  make(chan token),
-		done: make(chan empty),
+		msgBatch:  []kafka.Message{},
+		lastBatch: time.Now(),
+		out:       make(chan token),
+		done:      make(chan empty),
 	}
 }
 
@@ -117,6 +133,19 @@ func (k *kafkaForwarder) stop() {
 	close(k.done)
 }
 
+func (k *kafkaForwarder) canBatchAge() bool {
+	return time.Now().Add(-k.conf.batchPeriod).Before(k.lastBatch)
+}
+
+func (k *kafkaForwarder) canBatchGrow() bool {
+	return len(k.msgBatch) < k.conf.batchSize
+}
+
+func (k *kafkaForwarder) resetBatch() {
+	k.lastBatch = time.Now()
+	k.msgBatch = []kafka.Message{}
+}
+
 func (k *kafkaForwarder) send(t token) error {
 	k.Lock()
 	defer k.Unlock()
@@ -126,19 +155,25 @@ func (k *kafkaForwarder) send(t token) error {
 		return errNothingToFwd
 	}
 
-	err := k.writer.WriteMessages(context.Background(),
-		kafka.Message{
+	// We batch messages until 1) the batch gets too large or 2) the batch gets
+	// too old -- whichever comes first.
+	if k.canBatchAge() && k.canBatchGrow() {
+		k.msgBatch = append(k.msgBatch, kafka.Message{
 			Key:   nil,
 			Value: t,
-		},
-	)
+		})
+		return nil
+	}
+
+	err := k.writer.WriteMessages(context.Background(), k.msgBatch...)
 	if err != nil {
 		err := fmt.Errorf("failed to forward blob to Kafka: %w", err)
-		m.numForwarded.With(prometheus.Labels{outcome: failBecause(err)}).Inc()
+		m.numForwarded.With(prometheus.Labels{outcome: failBecause(err)}).Add(float64(len(k.msgBatch)))
 		return err
 	}
-	l.Printf("Sent %d-byte token to Kafka.", len(t))
-	m.numForwarded.With(prometheus.Labels{outcome: success}).Inc()
+	l.Printf("Sent %d tokens to Kafka.", len(k.msgBatch))
+	k.resetBatch()
+	m.numForwarded.With(prometheus.Labels{outcome: success}).Add(float64(len(k.msgBatch)))
 	return nil
 }
 
@@ -248,6 +283,8 @@ func loadKafkaConfig() (*kafkaConfig, error) {
 
 	l.Println("Loaded Kafka config.")
 	return &kafkaConfig{
+		batchSize:   defaultBatchSize,
+		batchPeriod: defaultBatchPeriod,
 		clientCert:  clientCert,
 		serverCerts: serverCerts,
 		broker:      kafka.TCP(broker),
