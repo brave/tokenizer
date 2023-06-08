@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"os"
@@ -48,6 +49,12 @@ DGGv8fpHLT0qXYQOaAIgcATqqJSvvK81W6YdqLGDGqf6l+BX9CdwDWh/tRISDeI=
 -----END CERTIFICATE-----
 `)
 )
+
+type dummyKafkaWriter struct{}
+
+func (d *dummyKafkaWriter) WriteMessages(ctx context.Context, msgs ...kafka.Message) error {
+	return nil
+}
 
 func createKafkaConf(t *testing.T) *kafkaConfig {
 	clientKeyPair, err := tls.X509KeyPair(clientCert, clientKey)
@@ -103,4 +110,24 @@ func TestLoadKafkaConfig(t *testing.T) {
 		t.Fatalf("Failed to load Kafka certificates: %v", err)
 	}
 
+}
+
+func TestSend(t *testing.T) {
+	maxBatchSize := 2
+	k := newKafkaForwarder().(*kafkaForwarder)
+	k.writer = &dummyKafkaWriter{}
+	k.setConfig(&config{
+		kafkaConfig: &kafkaConfig{
+			batchPeriod: defaultBatchPeriod,
+			batchSize:   maxBatchSize,
+		},
+	})
+	origBatchAge := k.lastBatch
+
+	assertEqual(t, k.send(token([]byte("foo"))), nil)
+	assertEqual(t, k.send(token([]byte("bar"))), nil)
+	assertEqual(t, len(k.msgBatch), maxBatchSize)
+	assertEqual(t, k.send(token([]byte("baz"))), nil)
+	assertEqual(t, len(k.msgBatch), 0)
+	assertEqual(t, origBatchAge != k.lastBatch, true)
 }
