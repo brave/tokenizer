@@ -168,12 +168,12 @@ func (k *kafkaForwarder) send(t token) error {
 	err := k.writer.WriteMessages(context.Background(), k.msgBatch...)
 	if err != nil {
 		err := fmt.Errorf("failed to forward blob to Kafka: %w", err)
-		m.numForwarded.With(prometheus.Labels{outcome: failBecause(err)}).Inc()
+		m.numForwarded.With(prometheus.Labels{outcome: failBecause(err)}).Add(float64(len(k.msgBatch)))
 		return err
 	}
 	l.Printf("Sent %d tokens to Kafka.", len(k.msgBatch))
 	k.resetBatch()
-	m.numForwarded.With(prometheus.Labels{outcome: success}).Inc()
+	m.numForwarded.With(prometheus.Labels{outcome: success}).Add(float64(len(k.msgBatch)))
 	return nil
 }
 
