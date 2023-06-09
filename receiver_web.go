@@ -140,6 +140,5 @@ func getConfTokenHandler(inbox chan serializer) http.HandlerFunc {
 
 		m.webResponses.With(prometheus.Labels{httpCode: "200", httpBody: ""}).Inc()
 		inbox <- &clientRequest{Addr: addr, Wallet: walletID}
-		l.Printf("Sent received data to aggregator.")
 	}
 }

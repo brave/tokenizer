@@ -57,10 +57,7 @@ sSi6
 -----END CERTIFICATE-----`
 )
 
-var (
-	errEnvVarUnset  = errors.New("environment variable unset")
-	errNothingToFwd = errors.New("nothing to forward")
-)
+var errEnvVarUnset = errors.New("environment variable unset")
 
 // kafkaWriter defines an interface that's implemented by kafka-go's
 // kafka.Writer (which we use in production) and by dummyKafkaWriter (which we
@@ -82,20 +79,18 @@ type kafkaConfig struct {
 // broker.
 type kafkaForwarder struct {
 	sync.RWMutex
-	msgBatch  []kafka.Message
-	lastBatch time.Time
-	conf      *kafkaConfig
-	writer    kafkaWriter
-	out       chan token
-	done      chan empty
+	tokenCache *cache
+	conf       *kafkaConfig
+	writer     kafkaWriter
+	out        chan token
+	done       chan empty
 }
 
 func newKafkaForwarder() forwarder {
 	return &kafkaForwarder{
-		msgBatch:  []kafka.Message{},
-		lastBatch: time.Now(),
-		out:       make(chan token),
-		done:      make(chan empty),
+		tokenCache: newCache(),
+		out:        make(chan token),
+		done:       make(chan empty),
 	}
 }
 
@@ -103,6 +98,7 @@ func (k *kafkaForwarder) setConfig(c *config) {
 	k.Lock()
 	defer k.Unlock()
 
+	k.tokenCache.conf = c.kafkaConfig
 	k.conf = c.kafkaConfig
 }
 
@@ -115,15 +111,17 @@ func (k *kafkaForwarder) start() {
 	k.writer = newKafkaWriter(k.conf)
 	k.Unlock()
 
+	k.tokenCache.start()
+	defer k.tokenCache.stop()
+
 	go func() {
 		for {
 			select {
 			case <-k.done:
 				return
 			case token := <-k.out:
-				if err := k.send(token); err != nil {
-					l.Printf("Failed to send token: %v", err)
-				}
+				k.tokenCache.submit(token)
+				k.maybeFlush()
 			}
 		}
 	}()
@@ -133,48 +131,33 @@ func (k *kafkaForwarder) stop() {
 	close(k.done)
 }
 
-func (k *kafkaForwarder) canBatchAge() bool {
-	return time.Now().Add(-k.conf.batchPeriod).Before(k.lastBatch)
-}
-
-func (k *kafkaForwarder) canBatchGrow() bool {
-	return len(k.msgBatch) < k.conf.batchSize
-}
-
-func (k *kafkaForwarder) resetBatch() {
-	k.lastBatch = time.Now()
-	k.msgBatch = []kafka.Message{}
-}
-
-func (k *kafkaForwarder) send(t token) error {
-	k.Lock()
-	defer k.Unlock()
-
-	if len(t) == 0 {
-		m.numForwarded.With(prometheus.Labels{outcome: failBecause(errNothingToFwd)}).Inc()
-		return errNothingToFwd
-	}
-
-	// We batch messages until 1) the batch gets too large or 2) the batch gets
-	// too old -- whichever comes first.
-	if k.canBatchAge() && k.canBatchGrow() {
-		k.msgBatch = append(k.msgBatch, kafka.Message{
-			Key:   nil,
-			Value: t,
-		})
-		return nil
-	}
-
-	err := k.writer.WriteMessages(context.Background(), k.msgBatch...)
+func (k *kafkaForwarder) maybeFlush() {
+	elems, err := k.tokenCache.retrieve()
 	if err != nil {
-		err := fmt.Errorf("failed to forward blob to Kafka: %w", err)
-		m.numForwarded.With(prometheus.Labels{outcome: failBecause(err)}).Add(float64(len(k.msgBatch)))
-		return err
+		return
 	}
-	l.Printf("Sent %d tokens to Kafka.", len(k.msgBatch))
-	k.resetBatch()
-	m.numForwarded.With(prometheus.Labels{outcome: success}).Add(float64(len(k.msgBatch)))
-	return nil
+
+	// Turn tokens into Kafka messages.
+	kafkaMsgs := make([]kafka.Message, len(elems))
+	for i, e := range elems {
+		kafkaMsgs[i].Key = nil
+		kafkaMsgs[i].Value = e.(token)
+	}
+	batchSize := len(kafkaMsgs)
+
+	err = k.writer.WriteMessages(context.Background(), kafkaMsgs...)
+	if err != nil {
+		l := prometheus.Labels{
+			outcome: failBecause(fmt.Errorf("failed to forward tokens: %v", err)),
+		}
+		m.numForwarded.With(l).Add(float64(batchSize))
+		return
+	}
+
+	l.Printf("Flushed %d tokens to Kafka.", batchSize)
+	m.numForwarded.With(prometheus.Labels{
+		outcome: success,
+	}).Add(float64(batchSize))
 }
 
 func newKafkaWriter(conf *kafkaConfig) *kafka.Writer {
