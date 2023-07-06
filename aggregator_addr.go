@@ -249,17 +249,20 @@ func (a *addrAggregator) flush() error {
 	}
 
 	for keyID, wallets := range a.addrs {
+		totalAddrs := 0
 		// Compile the anonymized IP addresses that we've seen for a given
 		// wallet ID.
 		for walletID, addrSet := range wallets {
+			totalAddrs += len(addrSet)
 			kafkaMsg, err := compileKafkaMsg(keyID, walletID, addrSet)
 			if err != nil {
 				return err
 			}
 			a.outbox <- token(kafkaMsg)
 		}
+		l.Printf("Forwarded %d addresses of %d wallets using key ID %s.",
+			totalAddrs, len(wallets), keyID)
 	}
-	l.Printf("Forwarded %d address(es).", len(a.addrs))
 	a.addrs = make(WalletsByKeyID)
 
 	return nil

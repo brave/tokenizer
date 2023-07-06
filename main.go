@@ -197,5 +197,6 @@ func main() {
 	if err := maxSoftFdLimit(); err != nil {
 		l.Printf("Failed to maximize soft fd limit: %v", err)
 	}
+	l.Printf("Config: %+v", conf)
 	bootstrap(conf, comp, make(chan empty))
 }
