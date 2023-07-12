@@ -109,10 +109,9 @@ func TestLoadKafkaConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to load Kafka certificates: %v", err)
 	}
-
 }
 
-func TestSend(t *testing.T) {
+func TestFlush(t *testing.T) {
 	maxBatchSize := 2
 	k := newKafkaForwarder().(*kafkaForwarder)
 	k.writer = &dummyKafkaWriter{}
@@ -122,12 +121,16 @@ func TestSend(t *testing.T) {
 			batchSize:   maxBatchSize,
 		},
 	})
-	origBatchAge := k.lastBatch
+	k.tokenCache.start()
+	defer k.tokenCache.stop()
 
-	assertEqual(t, k.send(token([]byte("foo"))), nil)
-	assertEqual(t, k.send(token([]byte("bar"))), nil)
-	assertEqual(t, len(k.msgBatch), maxBatchSize)
-	assertEqual(t, k.send(token([]byte("baz"))), nil)
-	assertEqual(t, len(k.msgBatch), 0)
-	assertEqual(t, origBatchAge != k.lastBatch, true)
+	k.tokenCache.submit(token([]byte("foo")))
+	k.maybeFlush()
+	k.tokenCache.submit(token([]byte("bar")))
+	k.maybeFlush()
+	assertEqual(t, k.tokenCache.len(), maxBatchSize)
+
+	k.tokenCache.submit(token([]byte("foo")))
+	k.maybeFlush()
+	assertEqual(t, k.tokenCache.len(), 0)
 }
