@@ -112,9 +112,8 @@ func (k *kafkaForwarder) start() {
 	k.Unlock()
 
 	k.tokenCache.start()
-	defer k.tokenCache.stop()
-
 	go func() {
+		defer k.tokenCache.stop()
 		for {
 			select {
 			case <-k.done:
