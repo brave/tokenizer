@@ -13,7 +13,7 @@ type cache struct {
 	out    chan []any
 	length chan int
 	done   chan empty
-	age    time.Time
+	age    chan time.Time
 	conf   *kafkaConfig
 }
 
@@ -23,22 +23,27 @@ func newCache() *cache {
 		out:    make(chan []any),
 		length: make(chan int),
 		done:   make(chan empty),
+		age:    make(chan time.Time),
 	}
 }
 
 func (c *cache) start() {
 	go func() {
-		elems := []any{}
+		var (
+			age   time.Time
+			elems = []any{}
+		)
 		for {
 			select {
 			case e := <-c.in:
 				if len(elems) == 0 {
-					c.age = time.Now()
+					age = time.Now()
 				}
 				elems = append(elems, e)
 			case c.out <- elems:
 				elems = []any{}
 			case c.length <- len(elems):
+			case c.age <- age:
 			case <-c.done:
 				return
 			}
@@ -66,7 +71,8 @@ func (c *cache) retrieve() ([]any, error) {
 }
 
 func (c *cache) isReady() bool {
-	if c.age.IsZero() {
+	age := <-c.age
+	if age.IsZero() {
 		return false
 	}
 	// We cache tokens until the cache gets too large or too old -- whichever
@@ -74,7 +80,7 @@ func (c *cache) isReady() bool {
 	if c.len() > c.conf.batchSize {
 		return true
 	}
-	if time.Now().Add(-c.conf.batchPeriod).After(c.age) {
+	if time.Now().Add(-c.conf.batchPeriod).After(age) {
 		return true
 	}
 	return false

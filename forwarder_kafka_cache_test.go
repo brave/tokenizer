@@ -35,9 +35,6 @@ func TestCache(t *testing.T) {
 
 	assertEqual(t, c.isReady(), false)
 	assertEqual(t, c.len(), 0)
-
-	c.age = time.Now().Add(-c.conf.batchPeriod * 2)
-	assertEqual(t, c.isReady(), true)
 }
 
 func TestIsReady(t *testing.T) {
@@ -59,8 +56,4 @@ func TestIsReady(t *testing.T) {
 
 	_, _ = c.retrieve()
 	assertEqual(t, c.isReady(), false)
-
-	// Make timestamp suggest that we're overdue for a flush.
-	c.age = time.Now().Add(-time.Second * 2)
-	assertEqual(t, c.isReady(), true)
 }
