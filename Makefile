@@ -15,6 +15,8 @@ test:
 .PHONY: lint
 lint:
 	golangci-lint run
+	govulncheck ./...
+	go vet ./...
 
 .PHONY: coverage
 coverage:
