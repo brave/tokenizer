@@ -10,11 +10,13 @@ all: test lint $(binary)
 
 .PHONY: test
 test:
-	go test -cover ./...
+	go test -race -cover ./...
 
 .PHONY: lint
 lint:
 	golangci-lint run
+	govulncheck ./...
+	go vet ./...
 
 .PHONY: coverage
 coverage:
