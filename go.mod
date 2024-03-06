@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/Yawning/cryptopan v0.0.0-20170504040949-65bca51288fe
-	github.com/go-chi/chi/v5 v5.0.8
+	github.com/go-chi/chi/v5 v5.0.12
 	github.com/google/uuid v1.3.0
 	github.com/linkedin/goavro/v2 v2.12.0
 	github.com/prometheus/client_golang v1.14.0

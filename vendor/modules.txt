@@ -4,21 +4,13 @@ github.com/Yawning/cryptopan
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile
-# github.com/brave/nitriding v1.1.1
-## explicit; go 1.19
-# github.com/brave/viproxy v0.1.2
-## explicit; go 1.17
 # github.com/cespare/xxhash/v2 v2.2.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/docker/libcontainer v2.2.1+incompatible
-## explicit
-# github.com/fxamacker/cbor/v2 v2.4.0
-## explicit; go 1.12
-# github.com/go-chi/chi/v5 v5.0.8
+# github.com/go-chi/chi/v5 v5.0.12
 ## explicit; go 1.14
 github.com/go-chi/chi/v5
 # github.com/golang/protobuf v1.5.3
@@ -31,10 +23,6 @@ github.com/golang/snappy
 # github.com/google/uuid v1.3.0
 ## explicit
 github.com/google/uuid
-# github.com/hf/nitrite v0.0.0-20211104000856-f9e0dcc73703
-## explicit; go 1.15
-# github.com/hf/nsm v0.0.0-20211106132757-1ae65a6a69ae
-## explicit; go 1.15
 # github.com/klauspost/compress v1.16.3
 ## explicit; go 1.18
 github.com/klauspost/compress
@@ -54,12 +42,6 @@ github.com/linkedin/goavro/v2
 # github.com/matttproud/golang_protobuf_extensions v1.0.4
 ## explicit; go 1.9
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/mdlayher/socket v0.2.3
-## explicit; go 1.17
-# github.com/mdlayher/vsock v1.1.1
-## explicit; go 1.17
-# github.com/milosgajdos/tenus v0.0.3
-## explicit; go 1.13
 # github.com/pierrec/lz4/v4 v4.1.17
 ## explicit; go 1.14
 github.com/pierrec/lz4/v4
@@ -88,8 +70,6 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/satori/go.uuid v1.2.0
-## explicit
 # github.com/segmentio/kafka-go v0.4.39
 ## explicit; go 1.15
 github.com/segmentio/kafka-go
@@ -132,21 +112,11 @@ github.com/segmentio/kafka-go/protocol/saslhandshake
 github.com/segmentio/kafka-go/protocol/syncgroup
 github.com/segmentio/kafka-go/protocol/txnoffsetcommit
 github.com/segmentio/kafka-go/sasl
-# github.com/x448/float16 v0.8.4
-## explicit; go 1.11
-# golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
-## explicit; go 1.17
-# golang.org/x/net v0.7.0
-## explicit; go 1.17
-# golang.org/x/sync v0.1.0
-## explicit
 # golang.org/x/sys v0.6.0
 ## explicit; go 1.17
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.7.0
-## explicit; go 1.17
 # google.golang.org/protobuf v1.29.1
 ## explicit; go 1.11
 google.golang.org/protobuf/encoding/prototext
