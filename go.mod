@@ -7,7 +7,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/google/uuid v1.6.0
 	github.com/linkedin/goavro/v2 v2.12.0
-	github.com/prometheus/client_golang v1.14.0
+	github.com/prometheus/client_golang v1.19.0
 	github.com/segmentio/kafka-go v0.4.47
 )
 
@@ -20,9 +20,9 @@ require (
 	github.com/klauspost/compress v1.16.3 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/pierrec/lz4/v4 v4.1.17 // indirect
-	github.com/prometheus/client_model v0.3.0 // indirect
-	github.com/prometheus/common v0.42.0 // indirect
-	github.com/prometheus/procfs v0.9.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	google.golang.org/protobuf v1.29.1 // indirect
+	github.com/prometheus/client_model v0.5.0 // indirect
+	github.com/prometheus/common v0.48.0 // indirect
+	github.com/prometheus/procfs v0.12.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
+	google.golang.org/protobuf v1.32.0 // indirect
 )
